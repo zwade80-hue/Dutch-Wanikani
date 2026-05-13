@@ -1,307 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dutch Vocab</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#8a5cf6" />
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#8a5cf6"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #f0f0f0; min-height: 100vh; }
-    #app { max-width: 580px; margin: 0 auto; padding: 1.5rem; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;background:#0a0a1a;color:#f0f0f0;min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:
+      radial-gradient(ellipse 600px 500px at 30% 40%, #3b2f6a18 0%, transparent 70%),
+      radial-gradient(ellipse 500px 400px at 45% 65%, #1e3a5f14 0%, transparent 70%),
+      radial-gradient(ellipse 200px 200px at 52% 72%, #1a3d2e18 0%, transparent 70%)}
+    body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 900'%3E%3Cdefs%3E%3Cfilter id='g'%3E%3CfeGaussianBlur stdDeviation='6' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M240,80 L520,72 L545,130 L560,180 L535,230 L510,275 L455,295 L400,305 L345,300 L295,288 L250,260 L220,220 L205,175 L210,130 Z' fill='%233b2f6a' fill-opacity='0.18' stroke='%238a5cf6' stroke-width='1.2' stroke-opacity='0.35' filter='url(%23g)'/%3E%3Cpath d='M205,310 L455,300 L490,330 L505,375 L490,420 L460,450 L400,465 L330,468 L270,455 L225,425 L200,385 L198,345 Z' fill='%231e3a5f' fill-opacity='0.18' stroke='%230ea5e9' stroke-width='1.2' stroke-opacity='0.35' filter='url(%23g)'/%3E%3Cpath d='M455,420 L510,415 L520,455 L512,490 L478,496 L452,478 L445,445 Z' fill='%231a3d2e' fill-opacity='0.22' stroke='%2316a34a' stroke-width='1.2' stroke-opacity='0.4' filter='url(%23g)'/%3E%3Ctext x='382' y='195' font-family='system-ui' font-size='22' fill='%238a5cf6' fill-opacity='0.12' text-anchor='middle'%3ENederland%3C/text%3E%3Ctext x='352' y='390' font-family='system-ui' font-size='22' fill='%230ea5e9' fill-opacity='0.12' text-anchor='middle'%3EBelgi%C3%AB%3C/text%3E%3Ctext x='482' y='460' font-family='system-ui' font-size='13' fill='%2316a34a' fill-opacity='0.18' text-anchor='middle'%3ELux%3C/text%3E%3C/svg%3E");
+      background-size:cover;background-position:center top;opacity:1}
+    #app{position:relative;z-index:1}
+    #app{max-width:700px;margin:0 auto;padding:1.5rem}
 
-    h2 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
-    p.sub { color: #888; font-size: 14px; margin-bottom: 1.5rem; }
+    /* NAV */
+    nav{display:flex;gap:8px;margin-bottom:1.5rem;border-bottom:0.5px solid #2a2a2a;padding-bottom:1rem}
+    nav button{background:none;border:none;color:#888;font-size:14px;cursor:pointer;padding:6px 12px;border-radius:6px}
+    nav button.active{background:#1a1a1a;color:#f0f0f0}
 
-    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 1.5rem; }
-    .metric { background: #1a1a1a; border-radius: 8px; padding: 12px 1rem; }
-    .metric .label { font-size: 13px; color: #888; margin-bottom: 4px; }
-    .metric .value { font-size: 26px; font-weight: 500; }
+    /* GENERAL */
+    h2{font-size:22px;font-weight:500;margin-bottom:4px}
+    p.sub{color:#888;font-size:14px;margin-bottom:1.5rem}
+    button{cursor:pointer;font-family:inherit;font-size:15px;border-radius:8px;border:0.5px solid #333;padding:12px;transition:opacity .15s}
+    button:disabled{opacity:0.4;cursor:not-allowed}
 
-    .btn-row { display: flex; gap: 12px; margin-bottom: 1.5rem; }
-    button { cursor: pointer; font-family: inherit; font-size: 15px; border-radius: 8px; border: 0.5px solid #333; padding: 12px; transition: opacity .15s; }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-review { flex:1; background: #2563eb; color: #fff; border-color: #2563eb; }
-    .btn-lesson { flex:1; background: #8a5cf6; color: #fff; border-color: #8a5cf6; }
-    .btn-secondary { background: #1a1a1a; color: #f0f0f0; width: 100%; margin-top: 12px; }
-    .btn-back { background: none; border: none; color: #888; font-size: 14px; padding: 0; }
-    .btn-check { width: 100%; margin-top: 12px; color: #fff; border: none; font-size: 16px; }
+    /* METRIC CARDS */
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+    .metric{background:#0f0f1fee;border:0.5px solid #2a2a4a;border-radius:8px;padding:12px 1rem}
+    .metric .label{font-size:13px;color:#888;margin-bottom:4px}
+    .metric .value{font-size:26px;font-weight:500}
 
-    .card { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
-    .card-label { font-size: 13px; font-weight: 500; color: #888; margin-bottom: 10px; }
+    /* BUTTONS */
+    .btn-row{display:flex;gap:12px;margin-bottom:1.5rem}
+    .btn-review{flex:1;background:#2563eb;color:#fff;border-color:#2563eb}
+    .btn-lesson{flex:1;background:#8a5cf6;color:#fff;border-color:#8a5cf6}
+    .btn-secondary{background:#1a1a1a;color:#f0f0f0;width:100%;margin-top:12px}
+    .btn-back{background:none;border:none;color:#888;font-size:14px;padding:0}
+    .btn-check{width:100%;margin-top:12px;color:#fff;border:none;font-size:16px}
 
-    .stage-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-    .pill { display: flex; align-items: center; gap: 6px; background: #222; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    /* CARDS */
+    .card{background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+    .card-label{font-size:13px;font-weight:500;color:#888;margin-bottom:10px}
 
-    .words-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px; }
-    .word-chip { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: 13px; }
+    /* LEVEL BAR */
+    .level-bar-wrap{background:#1a1a1a;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+    .level-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .level-title{font-size:16px;font-weight:500}
+    .level-pct{font-size:13px;color:#888}
+    .level-bar{height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden}
+    .level-bar-fill{height:100%;background:#8a5cf6;border-radius:4px;transition:width .5s}
 
-    .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .stage-badge { font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
-    .direction-label { font-size: 13px; color: #888; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .big-word { font-size: 52px; font-weight: 500; margin: 1rem 0 0.5rem; text-align: center; }
-    .prompt-label { font-size: 14px; color: #666; margin-bottom: 1.5rem; text-align: center; }
+    /* SRS PILLS */
+    .stage-pills{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{display:flex;align-items:center;gap:6px;background:#222;border-radius:6px;padding:6px 10px;font-size:13px}
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 
-    input[type=text] { width: 100%; padding: 12px; font-size: 18px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #f0f0f0; outline: none; font-family: inherit; }
-    input[type=text]:focus { border-color: #555; }
-    input[type=text].correct { border-color: #16a34a; }
-    input[type=text].wrong { border-color: #dc2626; }
+    /* REVIEW UI */
+    .review-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+    .stage-badge{font-size:12px;padding:3px 8px;border-radius:12px;font-weight:500}
+    .direction-label{font-size:13px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center}
+    .big-word{font-size:52px;font-weight:500;margin:1rem 0 0.5rem;text-align:center}
+    .prompt-label{font-size:14px;color:#666;margin-bottom:1.5rem;text-align:center}
+    input[type=text]{width:100%;padding:12px;font-size:18px;border-radius:8px;border:1px solid #333;background:#1a1a1a;color:#f0f0f0;outline:none;font-family:inherit}
+    input[type=text].correct{border-color:#16a34a}
+    input[type=text].wrong{border-color:#dc2626}
+    .feedback{margin:1rem 0;padding:12px;border-radius:8px;font-size:15px}
+    .feedback.correct{background:#14532d33;color:#4ade80}
+    .feedback.wrong{background:#7f1d1d33;color:#f87171}
+    .stats-bar{background:#1a1a1a;border-radius:8px;padding:10px 12px;margin-top:1.5rem;display:flex;gap:16px;font-size:13px;color:#888}
+    .stats-bar span:last-child{margin-left:auto}
 
-    .feedback { margin: 1rem 0; padding: 12px; border-radius: 8px; font-size: 15px; }
-    .feedback.correct { background: #14532d33; color: #4ade80; }
-    .feedback.wrong { background: #7f1d1d33; color: #f87171; }
+    /* DONE SCREEN */
+    .done-screen{text-align:center;padding:3rem 1.5rem}
+    .done-screen .emoji{font-size:48px;margin-bottom:1rem}
 
-    .stats-bar { background: #1a1a1a; border-radius: 8px; padding: 10px 12px; margin-top: 1.5rem; display: flex; gap: 16px; font-size: 13px; color: #888; }
-    .stats-bar span:last-child { margin-left: auto; }
+    /* LEVEL UP SCREEN */
+    .levelup-screen{text-align:center;padding:3rem 1.5rem}
+    .levelup-screen .emoji{font-size:64px;margin-bottom:1rem}
+    .levelup-screen h2{font-size:28px;margin-bottom:8px}
+    .levelup-num{font-size:80px;font-weight:700;color:#8a5cf6;line-height:1}
 
-    .done-screen { text-align: center; padding: 3rem 1.5rem; }
-    .done-screen .emoji { font-size: 48px; margin-bottom: 1rem; }
-    .done-screen h2 { margin-bottom: 8px; }
-    .done-screen p { color: #888; margin-bottom: 1.5rem; }
+    /* BROWSE PAGE */
+    .browse-level-section{margin-bottom:2rem}
+    .browse-level-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .browse-level-badge{background:#8a5cf6;color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px}
+    .browse-level-title{font-size:16px;font-weight:500}
+    .browse-level-lock{font-size:13px;color:#555;margin-left:auto}
+    .browse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+    .browse-card{border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;border:0.5px solid transparent;transition:transform .1s}
+    .browse-card:hover{transform:scale(1.04)}
+    .browse-card .dutch{font-size:16px;font-weight:500;margin-bottom:2px}
+    .browse-card .english{font-size:11px;opacity:.7}
+    .browse-card.locked{background:#1a1a1a;border-color:#2a2a2a;opacity:.4;cursor:default}
+    .browse-card.locked:hover{transform:none}
 
-    #loading { text-align: center; padding: 3rem; color: #888; }
+    /* WORD DETAIL MODAL */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem}
+    .modal{background:#1a1a1a;border-radius:16px;padding:2rem;max-width:420px;width:100%;border:0.5px solid #333}
+    .modal-word{font-size:48px;font-weight:500;text-align:center;margin-bottom:4px}
+    .modal-article{font-size:16px;color:#888;text-align:center;margin-bottom:8px}
+    .modal-english{font-size:22px;color:#aaa;text-align:center;margin-bottom:1.5rem}
+    .modal-row{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:0.5px solid #2a2a2a}
+    .modal-row:last-child{border-bottom:none}
+    .modal-close{width:100%;margin-top:1.5rem;background:#222;color:#f0f0f0;border:0.5px solid #333}
+
+    #loading{text-align:center;padding:3rem;color:#888}
   </style>
 </head>
 <body>
 <div id="app"><div id="loading">Loading...</div></div>
 <script>
-const SRS_STAGES = ["Apprentice 1","Apprentice 2","Apprentice 3","Apprentice 4","Guru 1","Guru 2","Master","Enlightened","Burned"];
-const SRS_INTERVALS = [4,8,24,72,168,336,730,2160,Infinity];
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const SRS_STAGES   = ["Apprentice 1","Apprentice 2","Apprentice 3","Apprentice 4","Guru 1","Guru 2","Master","Enlightened","Burned"];
+const SRS_INTERVALS= [4,8,24,72,168,336,730,2160,Infinity];
 const STAGE_COLORS = {"Apprentice 1":"#e85d9b","Apprentice 2":"#e85d9b","Apprentice 3":"#e85d9b","Apprentice 4":"#e85d9b","Guru 1":"#8a5cf6","Guru 2":"#8a5cf6","Master":"#2563eb","Enlightened":"#0ea5e9","Burned":"#16a34a"};
+const WORDS_PER_LEVEL = 83;
+const TOTAL_LEVELS    = 60;
+const LESSONS_PER_DAY = 15;
+const GURU_THRESHOLD  = 0.9; // 90% guru+ to level up
 
+// ── STATE ──────────────────────────────────────────────────────────────────
 let VOCAB = [];
-let progress = {};
+let progress = {}; // { [id]: { stage, nextReview, lessonDone, lessonDate } }
+let currentLevel = 1;
 let screen = "dashboard";
-let lessonQueue = [], lessonIdx = 0, lessonPhase = "learn";
+let subscreen = ""; // for browse
 let reviewQueue = [], reviewIdx = 0;
+let lessonQueue = [], lessonIdx = 0, lessonPhase = "learn";
 let input = "", feedback = null;
 let sessionCorrect = 0, sessionTotal = 0, sessionDone = false;
+let showLevelUp = false;
+let selectedWord = null;
+let browseFilter = "all";
 
-function loadProgress() {
-  const saved = localStorage.getItem("dutch-progress");
-  if (saved) progress = JSON.parse(saved);
-}
-function saveProgress() {
+// ── STORAGE ────────────────────────────────────────────────────────────────
+function save() {
   localStorage.setItem("dutch-progress", JSON.stringify(progress));
+  localStorage.setItem("dutch-level", currentLevel);
+  const today = new Date().toDateString();
+  localStorage.setItem("dutch-lastday", today);
+  localStorage.setItem("dutch-lessonstoday", lessonsGivenToday());
+}
+function load() {
+  const p = localStorage.getItem("dutch-progress");
+  if (p) progress = JSON.parse(p);
+  currentLevel = parseInt(localStorage.getItem("dutch-level") || "1");
 }
 function initProgress() {
-  VOCAB.forEach(w => {
-    if (!progress[w.id]) progress[w.id] = { stage:0, nextReview: Date.now(), lessonDone: false };
-  });
+  VOCAB.forEach(w => { if (!progress[w.id]) progress[w.id] = {stage:0, nextReview:Date.now(), lessonDone:false, lessonDate:null}; });
 }
-function normalize(s) { return s.trim().toLowerCase().replace(/[^a-z ]/g,""); }
-function similar(a,b) {
-  a = normalize(a); b = normalize(b);
-  if (a===b) return true;
-  if (Math.abs(a.length-b.length)>2) return false;
-  let diff=0;
-  for (let i=0;i<Math.max(a.length,b.length);i++) if(a[i]!==b[i]) diff++;
+
+// ── LEVEL HELPERS ──────────────────────────────────────────────────────────
+function wordsForLevel(lvl) {
+  const start = (lvl-1)*WORDS_PER_LEVEL;
+  return VOCAB.slice(start, start+WORDS_PER_LEVEL);
+}
+function isLevelUnlocked(lvl) {
+  if (lvl <= currentLevel) return true;
+  return false;
+}
+function guruCount(lvl) {
+  return wordsForLevel(lvl).filter(w => progress[w.id]?.lessonDone && progress[w.id]?.stage >= 4).length;
+}
+function levelProgress(lvl) {
+  const words = wordsForLevel(lvl);
+  if (!words.length) return 0;
+  return guruCount(lvl) / words.length;
+}
+function checkLevelUp() {
+  const pct = levelProgress(currentLevel);
+  if (pct >= GURU_THRESHOLD && currentLevel < TOTAL_LEVELS) {
+    const next = currentLevel + 1;
+    if (wordsForLevel(next).length > 0) {
+      currentLevel = next;
+      save();
+      return true;
+    }
+  }
+  return false;
+}
+
+// ── LESSON HELPERS ─────────────────────────────────────────────────────────
+function lessonsGivenToday() {
+  const today = new Date().toDateString();
+  const lastDay = localStorage.getItem("dutch-lastday");
+  if (lastDay !== today) return 0;
+  return parseInt(localStorage.getItem("dutch-lessonstoday") || "0");
+}
+function availableLessons() {
+  const today = new Date().toDateString();
+  const lastDay = localStorage.getItem("dutch-lastday");
+  const givenToday = lastDay === today ? parseInt(localStorage.getItem("dutch-lessonstoday")||"0") : 0;
+  const remaining = LESSONS_PER_DAY - givenToday;
+  if (remaining <= 0) return [];
+  const currentWords = wordsForLevel(currentLevel);
+  return currentWords.filter(w => !progress[w.id]?.lessonDone).slice(0, remaining);
+}
+function dueReviews() {
+  return VOCAB.filter(w => progress[w.id]?.lessonDone && progress[w.id]?.nextReview <= Date.now());
+}
+
+// ── UTIL ───────────────────────────────────────────────────────────────────
+function normalize(s){ return s.trim().toLowerCase().replace(/[^a-z ]/g,""); }
+function similar(a,b){
+  a=normalize(a); b=normalize(b);
+  if(a===b) return true;
+  const alts = b.split("/").map(x=>x.trim());
+  if(alts.some(x=>a===x)) return true;
+  if(Math.abs(a.length-b.length)>2) return false;
+  let diff=0; for(let i=0;i<Math.max(a.length,b.length);i++) if(a[i]!==b[i]) diff++;
   return diff<=1;
 }
+function stageColor(w) {
+  const p = progress[w.id];
+  if (!p?.lessonDone) return "#333";
+  return STAGE_COLORS[SRS_STAGES[p.stage]] || "#888";
+}
+function stageName(w) {
+  const p = progress[w.id];
+  if (!p?.lessonDone) return "Not started";
+  return SRS_STAGES[p.stage];
+}
 
-function dueReviews() { return VOCAB.filter(w => progress[w.id]?.lessonDone && progress[w.id]?.nextReview <= Date.now()); }
-function lessonsAvailable() { return VOCAB.filter(w => !progress[w.id]?.lessonDone); }
-
+// ── START LESSONS ──────────────────────────────────────────────────────────
 function startLessons() {
-  lessonQueue = lessonsAvailable().slice(0,5);
-  lessonIdx = 0; lessonPhase = "learn";
-  sessionCorrect = 0; sessionTotal = 0; sessionDone = false;
-  screen = "lesson"; input = ""; feedback = null;
+  lessonQueue = availableLessons();
+  if (!lessonQueue.length) return;
+  lessonIdx=0; lessonPhase="learn"; // phases: learn | quiz-meaning | quiz-dutch
+  sessionCorrect=0; sessionTotal=0; sessionDone=false;
+  screen="lesson"; input=""; feedback=null;
   render();
 }
 function startReviews() {
   const due = dueReviews();
-  reviewQueue = [];
-  due.forEach(w => { reviewQueue.push({word:w,type:"meaning"}); reviewQueue.push({word:w,type:"dutch"}); });
+  reviewQueue=[];
+  due.forEach(w=>{reviewQueue.push({word:w,type:"meaning"});reviewQueue.push({word:w,type:"dutch"});});
   for(let i=reviewQueue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[reviewQueue[i],reviewQueue[j]]=[reviewQueue[j],reviewQueue[i]];}
-  reviewIdx = 0; input = ""; feedback = null;
-  sessionCorrect = 0; sessionTotal = 0; sessionDone = false;
-  screen = "review"; render();
+  reviewIdx=0; input=""; feedback=null;
+  sessionCorrect=0; sessionTotal=0; sessionDone=false;
+  screen="review"; render();
 }
 
+// ── LESSON LOGIC ───────────────────────────────────────────────────────────
+// lessonPhase: "learn" | "quiz-meaning" (Dutch→English) | "quiz-dutch" (English→Dutch)
 function submitLesson() {
-  if (feedback) { advanceLesson(); return; }
-  const word = lessonQueue[lessonIdx];
-  const correct = similar(input, word.english);
-  feedback = { correct, answer: word.english };
+  if(feedback){
+    if(feedback.correct) advanceLesson();
+    else { feedback=null; input=""; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); }
+    return;
+  }
+  const word=lessonQueue[lessonIdx];
+  const expected=lessonPhase==="quiz-meaning"?word.english:word.dutch;
+  const correct=similar(input,expected);
+  feedback={correct,answer:expected};
   sessionTotal++; if(correct) sessionCorrect++;
   render();
 }
 function advanceLesson() {
-  if (lessonPhase==="learn") { lessonPhase="quiz"; input=""; feedback=null; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); return; }
-  if (lessonIdx+1 < lessonQueue.length) { lessonIdx++; lessonPhase="learn"; input=""; feedback=null; render(); }
+  if(lessonPhase==="learn"){lessonPhase="quiz-meaning";input="";feedback=null;render();setTimeout(()=>document.getElementById("answer-input")?.focus(),50);return;}
+  if(lessonPhase==="quiz-meaning"){lessonPhase="quiz-dutch";input="";feedback=null;render();setTimeout(()=>document.getElementById("answer-input")?.focus(),50);return;}
+  // quiz-dutch done — next word
+  if(lessonIdx+1<lessonQueue.length){lessonIdx++;lessonPhase="learn";input="";feedback=null;render();}
   else {
-    lessonQueue.forEach(w => { progress[w.id] = {...progress[w.id], lessonDone:true, stage:0, nextReview: Date.now()+SRS_INTERVALS[0]*3600000}; });
-    saveProgress(); sessionDone=true; render();
+    lessonQueue.forEach(w=>{
+      progress[w.id]={...progress[w.id],lessonDone:true,stage:0,nextReview:Date.now()+SRS_INTERVALS[0]*3600000,lessonDate:new Date().toDateString()};
+    });
+    const today=new Date().toDateString();
+    const lastDay=localStorage.getItem("dutch-lastday");
+    const given=lastDay===today?parseInt(localStorage.getItem("dutch-lessonstoday")||"0"):0;
+    localStorage.setItem("dutch-lastday",today);
+    localStorage.setItem("dutch-lessonstoday",given+lessonQueue.length);
+    const leveled=checkLevelUp();
+    save();
+    sessionDone=true;
+    showLevelUp=leveled;
+    render();
   }
 }
+
+// ── REVIEW LOGIC ───────────────────────────────────────────────────────────
 function submitReview() {
-  if (feedback) {
-    if (reviewIdx+1 < reviewQueue.length) { reviewIdx++; input=""; feedback=null; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); }
-    else { sessionDone=true; render(); }
+  if(feedback){
+    if(reviewIdx+1<reviewQueue.length){reviewIdx++;input="";feedback=null;render();setTimeout(()=>document.getElementById("answer-input")?.focus(),50);}
+    else{sessionDone=true;const leveled=checkLevelUp();save();showLevelUp=leveled;render();}
     return;
   }
-  const {word,type} = reviewQueue[reviewIdx];
-  const expected = type==="meaning" ? word.english : word.dutch;
-  const correct = similar(input, expected);
-  feedback = { correct, answer: expected };
+  const{word,type}=reviewQueue[reviewIdx];
+  const expected=type==="meaning"?word.english:word.dutch;
+  const correct=similar(input,expected);
+  feedback={correct,answer:expected};
   sessionTotal++; if(correct) sessionCorrect++;
-  const cur = progress[word.id];
-  const newStage = correct ? Math.min(cur.stage+1,SRS_STAGES.length-1) : Math.max(cur.stage-1,0);
-  progress[word.id] = {...cur, stage:newStage, nextReview: Date.now()+SRS_INTERVALS[newStage]*3600000};
-  saveProgress(); render();
+  const cur=progress[word.id];
+  const newStage=correct?Math.min(cur.stage+1,SRS_STAGES.length-1):Math.max(cur.stage-1,0);
+  progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
+  save(); render();
 }
 
+// ── STAGE COUNTS ───────────────────────────────────────────────────────────
 function stageCounts() {
-  const counts = {};
-  SRS_STAGES.forEach(s => counts[s]=0);
-  VOCAB.forEach(w => { if(progress[w.id]?.lessonDone) counts[SRS_STAGES[progress[w.id].stage]]++; });
-  return counts;
+  const c={};SRS_STAGES.forEach(s=>c[s]=0);
+  VOCAB.forEach(w=>{if(progress[w.id]?.lessonDone)c[SRS_STAGES[progress[w.id].stage]]++;});
+  return c;
 }
 
+// ── RENDER ─────────────────────────────────────────────────────────────────
 function render() {
-  const app = document.getElementById("app");
+  const app=document.getElementById("app");
 
-  if (sessionDone) {
-    app.innerHTML = `
+  // LEVEL UP SCREEN
+  if(showLevelUp){
+    app.innerHTML=`
+      <div class="levelup-screen">
+        <div class="emoji">🎉</div>
+        <p style="color:#888;font-size:14px;margin-bottom:8px">Level up!</p>
+        <div class="levelup-num">${currentLevel}</div>
+        <p style="color:#888;margin:1rem 0 2rem">You've unlocked level ${currentLevel}!</p>
+        <button class="btn-secondary" style="max-width:200px;margin:0 auto" onclick="showLevelUp=false;screen='dashboard';render()">Continue</button>
+      </div>`;
+    return;
+  }
+
+  // SESSION DONE
+  if(sessionDone && !showLevelUp){
+    app.innerHTML=`
       <div class="done-screen">
         <div class="emoji">🎉</div>
         <h2>${screen==="lesson"?"Lessons complete!":"Reviews complete!"}</h2>
-        <p>${sessionCorrect} / ${sessionTotal} correct (${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%)</p>
-        <button class="btn-secondary" onclick="screen='dashboard';render()">Back to dashboard</button>
+        <p style="color:#888;margin:.5rem 0 1.5rem">${sessionCorrect}/${sessionTotal} correct (${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%)</p>
+        <button class="btn-secondary" onclick="screen='dashboard';sessionDone=false;render()">Back to dashboard</button>
       </div>`;
     return;
   }
 
-  if (screen==="dashboard") {
-    const due = dueReviews().length;
-    const lessons = lessonsAvailable().length;
-    const sc = stageCounts();
-    const burned = sc["Burned"]||0;
-    const stageGroups = ["Apprentice","Guru","Master","Enlightened","Burned"];
-    const pillsHTML = stageGroups.map(g => {
-      const count = Object.entries(sc).filter(([k])=>k.startsWith(g)).reduce((a,[,v])=>a+v,0);
-      const color = STAGE_COLORS[g+" 1"]||STAGE_COLORS[g];
-      return `<div class="pill"><span class="dot" style="background:${color}"></span><span style="color:#aaa">${g}</span><span style="font-weight:500">${count}</span></div>`;
-    }).join("");
-    const wordsHTML = VOCAB.map(w => {
-      const p = progress[w.id];
-      const color = p?.lessonDone ? STAGE_COLORS[SRS_STAGES[p.stage]] : "#333";
-      return `<div class="word-chip" style="border:0.5px solid ${color}33;background:${color}18"><span class="dot" style="background:${color}"></span>${w.dutch}</div>`;
-    }).join("");
-    app.innerHTML = `
-      <h2>🇳🇱 Dutch Vocab</h2>
-      <p class="sub">Spaced repetition system</p>
-      <div class="grid-3">
-        <div class="metric"><div class="label">Reviews due</div><div class="value" style="color:#2563eb">${due}</div></div>
-        <div class="metric"><div class="label">Lessons left</div><div class="value" style="color:#8a5cf6">${lessons}</div></div>
-        <div class="metric"><div class="label">Words burned</div><div class="value" style="color:#16a34a">${burned}</div></div>
+  if(screen==="dashboard") renderDashboard(app);
+  else if(screen==="browse") renderBrowse(app);
+  else if(screen==="lesson") renderLesson(app);
+  else if(screen==="review") renderReview(app);
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+function renderDashboard(app) {
+  const due=dueReviews().length;
+  const lessons=availableLessons().length;
+  const sc=stageCounts();
+  const burned=sc["Burned"]||0;
+  const pct=Math.round(levelProgress(currentLevel)*100);
+  const gurus=guruCount(currentLevel);
+  const total=wordsForLevel(currentLevel).length;
+  const needed=Math.ceil(total*GURU_THRESHOLD);
+
+  const pillsHTML=["Apprentice","Guru","Master","Enlightened","Burned"].map(g=>{
+    const count=Object.entries(sc).filter(([k])=>k.startsWith(g)).reduce((a,[,v])=>a+v,0);
+    const color=STAGE_COLORS[g+" 1"]||STAGE_COLORS[g];
+    return `<div class="pill"><span class="dot" style="background:${color}"></span><span style="color:#aaa">${g}</span><span style="font-weight:500">${count}</span></div>`;
+  }).join("");
+
+  app.innerHTML=`
+    ${navHTML("dashboard")}
+    <h2>🇳🇱 Dutch Vocab</h2>
+    <p class="sub">Spaced repetition system</p>
+
+    <div class="level-bar-wrap">
+      <div class="level-header">
+        <span class="level-title">Level ${currentLevel}</span>
+        <span class="level-pct">${gurus}/${needed} Guru to level up</span>
       </div>
-      <div class="btn-row">
-        <button class="btn-review" onclick="startReviews()" ${due===0?"disabled":""}>Start reviews (${due})</button>
-        <button class="btn-lesson" onclick="startLessons()" ${lessons===0?"disabled":""}>Start lessons (${lessons})</button>
-      </div>
-      <div class="card"><div class="card-label">SRS progress</div><div class="stage-pills">${pillsHTML}</div></div>
-      <div class="card"><div class="card-label">All words</div><div class="words-grid">${wordsHTML}</div></div>`;
-    return;
+      <div class="level-bar"><div class="level-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="metric"><div class="label">Reviews due</div><div class="value" style="color:#2563eb">${due}</div></div>
+      <div class="metric"><div class="label">Lessons today</div><div class="value" style="color:#8a5cf6">${lessons}</div></div>
+      <div class="metric"><div class="label">Words burned</div><div class="value" style="color:#16a34a">${burned}</div></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-review" onclick="startReviews()" ${due===0?"disabled":""}>Start reviews (${due})</button>
+      <button class="btn-lesson" onclick="startLessons()" ${lessons===0?"disabled":""}>Start lessons (${lessons})</button>
+    </div>
+
+    <div class="card"><div class="card-label">SRS progress</div><div class="stage-pills">${pillsHTML}</div></div>`;
+}
+
+// ── BROWSE ─────────────────────────────────────────────────────────────────
+function renderBrowse(app) {
+  // how many levels have content
+  const maxLevel = Math.ceil(VOCAB.length / WORDS_PER_LEVEL);
+
+  let sectionsHTML = "";
+  for(let lvl=1; lvl<=maxLevel; lvl++){
+    const words = wordsForLevel(lvl);
+    const unlocked = isLevelUnlocked(lvl);
+    const cardsHTML = words.map(w => {
+      const color = stageColor(w);
+      const locked = !unlocked;
+      return `<div class="browse-card${locked?" locked":""}" style="${locked?"":"background:"+color+"22;border-color:"+color+"44"}" onclick="${locked?"":"openWord("+w.id+")"}" title="${w.dutch}">
+        <div class="dutch" style="color:${locked?"#444":color}">${w.dutch}</div>
+        <div class="english">${locked?"???":w.english}</div>
+      </div>`;
+    }).join("");
+
+    const guruPct = Math.round(levelProgress(lvl)*100);
+    sectionsHTML += `
+      <div class="browse-level-section">
+        <div class="browse-level-header">
+          <span class="browse-level-badge">Level ${lvl}</span>
+          <span class="browse-level-title">${words.length} words</span>
+          <span class="browse-level-lock">${unlocked ? (lvl===currentLevel?guruPct+"% to next level":"✓ completed") : "🔒 locked"}</span>
+        </div>
+        <div class="browse-grid">${cardsHTML}</div>
+      </div>`;
   }
 
-  if (screen==="lesson") {
-    const word = lessonQueue[lessonIdx];
-    if (lessonPhase==="learn") {
-      app.innerHTML = `
-        <div class="review-header">
-          <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
-          <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length}</span>
-        </div>
-        <div style="text-align:center">
-          <div class="direction-label">Lesson</div>
-          <div class="big-word">${word.dutch}</div>
-          ${word.article?`<div style="color:#888;font-size:16px;margin-bottom:4px">${word.article} ${word.dutch}</div>`:""}
-          <div style="font-size:24px;color:#888;margin:1rem 0 2rem">${word.english}</div>
-          <button class="btn-check" style="background:#8a5cf6" onclick="advanceLesson()">I know this →</button>
-        </div>`;
-    } else {
-      const inputClass = feedback ? (feedback.correct?"correct":"wrong") : "";
-      app.innerHTML = `
-        <div class="review-header">
-          <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
-          <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length}</span>
-        </div>
-        <div style="text-align:center">
-          <div class="direction-label">Quiz</div>
-          <div class="big-word">${word.dutch}</div>
-          <div class="prompt-label">What is the English meaning?</div>
-          <input id="answer-input" type="text" class="${inputClass}" value="${input.replace(/"/g,'&quot;')}" placeholder="Type meaning in English…" ${feedback?"disabled":""} />
-          ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Correct answer: "+feedback.answer}</div>`:""}
-          <button class="btn-check" style="background:${feedback?"#1a1a1a":"#8a5cf6"};color:${feedback?"#f0f0f0":"#fff"}" onclick="${feedback?"advanceLesson":"submitLesson"}()">
-            ${feedback?(lessonIdx+1<lessonQueue.length?"Next word →":"Finish lessons"):"Check →"}
-          </button>
-        </div>`;
-      if (!feedback) {
-        const inp = document.getElementById("answer-input");
-        inp?.addEventListener("input", e => { input = e.target.value; });
-        inp?.addEventListener("keydown", e => { if(e.key==="Enter") submitLesson(); });
-        inp?.focus();
-      }
-    }
-    return;
-  }
+  app.innerHTML=`
+    ${navHTML("browse")}
+    <h2 style="margin-bottom:1rem">All words</h2>
+    ${sectionsHTML}
+    ${selectedWord ? renderModal() : ""}`;
+}
 
-  if (screen==="review") {
-    const {word,type} = reviewQueue[reviewIdx];
-    const prompt = type==="meaning" ? word.dutch : word.english;
-    const label = type==="meaning" ? "What is the English meaning?" : "How do you write this in Dutch?";
-    const stageColor = STAGE_COLORS[SRS_STAGES[progress[word.id].stage]]||"#888";
-    const inputClass = feedback ? (feedback.correct?"correct":"wrong") : "";
-    app.innerHTML = `
+function openWord(id) {
+  selectedWord = VOCAB.find(w=>w.id===id);
+  render();
+}
+function closeModal() { selectedWord=null; render(); }
+
+function renderModal() {
+  const w = selectedWord;
+  const p = progress[w.id];
+  const stage = p?.lessonDone ? SRS_STAGES[p.stage] : "Not started";
+  const color = stageColor(w);
+  const nextReview = p?.lessonDone && p.nextReview > Date.now()
+    ? new Date(p.nextReview).toLocaleDateString()
+    : p?.lessonDone ? "Due now" : "—";
+  return `<div class="modal-bg" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-word" style="color:${color}">${w.dutch}</div>
+      ${w.article?`<div class="modal-article">${w.article} ${w.dutch}</div>`:""}
+      <div class="modal-english">${w.english}</div>
+      <div class="modal-row"><span style="color:#888">SRS stage</span><span style="color:${color};font-weight:500">${stage}</span></div>
+      <div class="modal-row"><span style="color:#888">Next review</span><span>${nextReview}</span></div>
+      <div class="modal-row"><span style="color:#888">Article</span><span>${w.article||"—"}</span></div>
+      <button class="modal-close btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  </div>`;
+}
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+function navHTML(active) {
+  return `<nav>
+    <button class="${active==="dashboard"?"active":""}" onclick="screen='dashboard';selectedWord=null;render()">Dashboard</button>
+    <button class="${active==="browse"?"active":""}" onclick="screen='browse';render()">Browse</button>
+  </nav>`;
+}
+
+// ── LESSON RENDER ──────────────────────────────────────────────────────────
+function renderLesson(app) {
+  const word=lessonQueue[lessonIdx];
+  if(lessonPhase==="learn"){
+    app.innerHTML=`
       <div class="review-header">
         <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
-        <span style="font-size:13px;color:#888">${reviewIdx+1} / ${reviewQueue.length}</span>
-        <span class="stage-badge" style="background:${stageColor}22;color:${stageColor}">${SRS_STAGES[progress[word.id].stage]}</span>
+        <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length}</span>
       </div>
       <div style="text-align:center">
-        <div class="direction-label">${type==="meaning"?"🇳🇱 Dutch → English":"🇬🇧 English → Dutch"}</div>
-        <div class="big-word">${prompt}</div>
-        <div class="prompt-label">${label}</div>
-        <input id="answer-input" type="text" class="${inputClass}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""} />
-        ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<div style="font-size:13px;margin-top:4px">Article: ${word.article}</div>`:""}</div>`:""}
-        <button class="btn-check" style="background:${feedback?(feedback.correct?"#16a34a":"#dc2626"):"#2563eb"}" onclick="submitReview()">
-          ${feedback?(reviewIdx+1<reviewQueue.length?"Next →":"Finish reviews"):"Check →"}
-        </button>
-      </div>
-      <div class="stats-bar">
-        <span>✓ ${sessionCorrect} correct</span>
-        <span>✗ ${sessionTotal-sessionCorrect} wrong</span>
-        <span>${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%</span>
+        <div class="direction-label">Lesson</div>
+        <div class="big-word">${word.dutch}</div>
+        ${word.article?`<div style="color:#888;font-size:16px;margin-bottom:4px">${word.article} ${word.dutch}</div>`:""}
+        <div style="font-size:24px;color:#888;margin:1rem 0 2rem">${word.english}</div>
+        <button class="btn-check" style="background:#8a5cf6" onclick="advanceLesson()">I know this →</button>
       </div>`;
-    if (!feedback) {
-      const inp = document.getElementById("answer-input");
-      inp?.addEventListener("input", e => { input = e.target.value; });
-      inp?.addEventListener("keydown", e => { if(e.key==="Enter") submitReview(); });
+  } else {
+    const ic=feedback?(feedback.correct?"correct":"wrong"):"";
+    const isMeaning=lessonPhase==="quiz-meaning";
+    const prompt=isMeaning?word.dutch:word.english;
+    const placeholder=isMeaning?"Type meaning in English…":"Type the Dutch word…";
+    const dirLabel=isMeaning?"🇳🇱 Dutch → English":"🇬🇧 English → Dutch";
+    const phaseNum=isMeaning?"1":"2";
+    const nextLabel=feedback?.correct?(lessonIdx+1<lessonQueue.length||!isMeaning?"Next →":"Finish lessons"):"Try again";
+    app.innerHTML=`
+      <div class="review-header">
+        <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
+        <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length} · Quiz ${phaseNum}/2</span>
+      </div>
+      <div style="text-align:center">
+        <div class="direction-label">${dirLabel}</div>
+        <div class="big-word">${prompt}</div>
+        <div class="prompt-label">${isMeaning?"What is the English meaning?":"How do you write this in Dutch?"}</div>
+        <input id="answer-input" type="text" class="${ic}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}" ${feedback?"disabled":""}/>
+        ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Wrong — correct answer: "+feedback.answer}</div>`:""}
+        <button class="btn-check" style="background:${feedback?(feedback.correct?"#8a5cf6":"#dc2626"):"#8a5cf6"}" onclick="submitLesson()">
+          ${feedback?nextLabel:"Check →"}
+        </button>
+      </div>`;
+    if(!feedback){
+      const inp=document.getElementById("answer-input");
+      inp?.addEventListener("input",e=>{input=e.target.value;});
+      inp?.addEventListener("keydown",e=>{if(e.key==="Enter")submitLesson();});
       inp?.focus();
     }
   }
 }
 
-async function init() {
-  try {
-    const res = await fetch("words.json");
-    VOCAB = await res.json();
-  } catch(e) {
-    VOCAB = [];
+// ── REVIEW RENDER ──────────────────────────────────────────────────────────
+function renderReview(app) {
+  const{word,type}=reviewQueue[reviewIdx];
+  const prompt=type==="meaning"?word.dutch:word.english;
+  const label=type==="meaning"?"What is the English meaning?":"How do you write this in Dutch?";
+  const sc=STAGE_COLORS[SRS_STAGES[progress[word.id].stage]]||"#888";
+  const ic=feedback?(feedback.correct?"correct":"wrong"):"";
+  app.innerHTML=`
+    <div class="review-header">
+      <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
+      <span style="font-size:13px;color:#888">${reviewIdx+1} / ${reviewQueue.length}</span>
+      <span class="stage-badge" style="background:${sc}22;color:${sc}">${SRS_STAGES[progress[word.id].stage]}</span>
+    </div>
+    <div style="text-align:center">
+      <div class="direction-label">${type==="meaning"?"🇳🇱 Dutch → English":"🇬🇧 English → Dutch"}</div>
+      <div class="big-word">${prompt}</div>
+      <div class="prompt-label">${label}</div>
+      <input id="answer-input" type="text" class="${ic}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""}/>
+      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<div style="font-size:13px;margin-top:4px">Article: ${word.article}</div>`:""}</div>`:""}
+      <button class="btn-check" style="background:${feedback?(feedback.correct?"#16a34a":"#dc2626"):"#2563eb"}" onclick="submitReview()">
+        ${feedback?(reviewIdx+1<reviewQueue.length?"Next →":"Finish reviews"):"Check →"}
+      </button>
+    </div>
+    <div class="stats-bar">
+      <span>✓ ${sessionCorrect} correct</span>
+      <span>✗ ${sessionTotal-sessionCorrect} wrong</span>
+      <span>${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%</span>
+    </div>`;
+  if(!feedback){
+    const inp=document.getElementById("answer-input");
+    inp?.addEventListener("input",e=>{input=e.target.value;});
+    inp?.addEventListener("keydown",e=>{if(e.key==="Enter")submitReview();});
+    inp?.focus();
   }
-  loadProgress();
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+async function init() {
+  try { const r=await fetch("words.json"); VOCAB=await r.json(); } catch(e){ VOCAB=[]; }
+  load();
   initProgress();
   render();
 }
 init();
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
+if("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
 </script>
 </body>
 </html>
