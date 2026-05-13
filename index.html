@@ -539,25 +539,19 @@ function renderReview(app) {
     const inp=document.getElementById("answer-input");
     inp?.addEventListener("input",e=>{input=e.target.value;});
     inp?.addEventListener("keydown",e=>{if(e.key==="Enter")submitReview();});
-    inp?.focus();
+          inp?.focus();
+      inp?.addEventListener("keydown", e => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!feedback) { input = inp.value; submitLesson(); }
+        else submitLesson();
+      });
   }
 }
 
 // ── GLOBAL ENTER ───────────────────────────────────────────────────────────
-document.addEventListener("keydown", e => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-  const inp = document.getElementById("answer-input");
-  if (!inp) return;
-  if (!feedback) {
-    input = inp.value;
-    if (screen === "review") submitReview();
-    else if (screen === "lesson") submitLesson();
-  } else {
-    if (screen === "review") submitReview();
-    else if (screen === "lesson") submitLesson();
-  }
-});
+
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 async function init() {
