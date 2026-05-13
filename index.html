@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dutch Vocab</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#8a5cf6" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #f0f0f0; min-height: 100vh; }
+    #app { max-width: 580px; margin: 0 auto; padding: 1.5rem; }
+
+    h2 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    p.sub { color: #888; font-size: 14px; margin-bottom: 1.5rem; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .metric { background: #1a1a1a; border-radius: 8px; padding: 12px 1rem; }
+    .metric .label { font-size: 13px; color: #888; margin-bottom: 4px; }
+    .metric .value { font-size: 26px; font-weight: 500; }
+
+    .btn-row { display: flex; gap: 12px; margin-bottom: 1.5rem; }
+    button { cursor: pointer; font-family: inherit; font-size: 15px; border-radius: 8px; border: 0.5px solid #333; padding: 12px; transition: opacity .15s; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-review { flex:1; background: #2563eb; color: #fff; border-color: #2563eb; }
+    .btn-lesson { flex:1; background: #8a5cf6; color: #fff; border-color: #8a5cf6; }
+    .btn-secondary { background: #1a1a1a; color: #f0f0f0; width: 100%; margin-top: 12px; }
+    .btn-back { background: none; border: none; color: #888; font-size: 14px; padding: 0; }
+    .btn-check { width: 100%; margin-top: 12px; color: #fff; border: none; font-size: 16px; }
+
+    .card { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .card-label { font-size: 13px; font-weight: 500; color: #888; margin-bottom: 10px; }
+
+    .stage-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill { display: flex; align-items: center; gap: 6px; background: #222; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+    .words-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px; }
+    .word-chip { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: 13px; }
+
+    .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .stage-badge { font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
+    .direction-label { font-size: 13px; color: #888; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .big-word { font-size: 52px; font-weight: 500; margin: 1rem 0 0.5rem; text-align: center; }
+    .prompt-label { font-size: 14px; color: #666; margin-bottom: 1.5rem; text-align: center; }
+
+    input[type=text] { width: 100%; padding: 12px; font-size: 18px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #f0f0f0; outline: none; font-family: inherit; }
+    input[type=text]:focus { border-color: #555; }
+    input[type=text].correct { border-color: #16a34a; }
+    input[type=text].wrong { border-color: #dc2626; }
+
+    .feedback { margin: 1rem 0; padding: 12px; border-radius: 8px; font-size: 15px; }
+    .feedback.correct { background: #14532d33; color: #4ade80; }
+    .feedback.wrong { background: #7f1d1d33; color: #f87171; }
+
+    .stats-bar { background: #1a1a1a; border-radius: 8px; padding: 10px 12px; margin-top: 1.5rem; display: flex; gap: 16px; font-size: 13px; color: #888; }
+    .stats-bar span:last-child { margin-left: auto; }
+
+    .done-screen { text-align: center; padding: 3rem 1.5rem; }
+    .done-screen .emoji { font-size: 48px; margin-bottom: 1rem; }
+    .done-screen h2 { margin-bottom: 8px; }
+    .done-screen p { color: #888; margin-bottom: 1.5rem; }
+
+    #loading { text-align: center; padding: 3rem; color: #888; }
+  </style>
+</head>
+<body>
+<div id="app"><div id="loading">Loading...</div></div>
+<script>
+const SRS_STAGES = ["Apprentice 1","Apprentice 2","Apprentice 3","Apprentice 4","Guru 1","Guru 2","Master","Enlightened","Burned"];
+const SRS_INTERVALS = [4,8,24,72,168,336,730,2160,Infinity];
+const STAGE_COLORS = {"Apprentice 1":"#e85d9b","Apprentice 2":"#e85d9b","Apprentice 3":"#e85d9b","Apprentice 4":"#e85d9b","Guru 1":"#8a5cf6","Guru 2":"#8a5cf6","Master":"#2563eb","Enlightened":"#0ea5e9","Burned":"#16a34a"};
+
+let VOCAB = [];
+let progress = {};
+let screen = "dashboard";
+let lessonQueue = [], lessonIdx = 0, lessonPhase = "learn";
+let reviewQueue = [], reviewIdx = 0;
+let input = "", feedback = null;
+let sessionCorrect = 0, sessionTotal = 0, sessionDone = false;
+
+function loadProgress() {
+  const saved = localStorage.getItem("dutch-progress");
+  if (saved) progress = JSON.parse(saved);
+}
+function saveProgress() {
+  localStorage.setItem("dutch-progress", JSON.stringify(progress));
+}
+function initProgress() {
+  VOCAB.forEach(w => {
+    if (!progress[w.id]) progress[w.id] = { stage:0, nextReview: Date.now(), lessonDone: false };
+  });
+}
+function normalize(s) { return s.trim().toLowerCase().replace(/[^a-z ]/g,""); }
+function similar(a,b) {
+  a = normalize(a); b = normalize(b);
+  if (a===b) return true;
+  if (Math.abs(a.length-b.length)>2) return false;
+  let diff=0;
+  for (let i=0;i<Math.max(a.length,b.length);i++) if(a[i]!==b[i]) diff++;
+  return diff<=1;
+}
+
+function dueReviews() { return VOCAB.filter(w => progress[w.id]?.lessonDone && progress[w.id]?.nextReview <= Date.now()); }
+function lessonsAvailable() { return VOCAB.filter(w => !progress[w.id]?.lessonDone); }
+
+function startLessons() {
+  lessonQueue = lessonsAvailable().slice(0,5);
+  lessonIdx = 0; lessonPhase = "learn";
+  sessionCorrect = 0; sessionTotal = 0; sessionDone = false;
+  screen = "lesson"; input = ""; feedback = null;
+  render();
+}
+function startReviews() {
+  const due = dueReviews();
+  reviewQueue = [];
+  due.forEach(w => { reviewQueue.push({word:w,type:"meaning"}); reviewQueue.push({word:w,type:"dutch"}); });
+  for(let i=reviewQueue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[reviewQueue[i],reviewQueue[j]]=[reviewQueue[j],reviewQueue[i]];}
+  reviewIdx = 0; input = ""; feedback = null;
+  sessionCorrect = 0; sessionTotal = 0; sessionDone = false;
+  screen = "review"; render();
+}
+
+function submitLesson() {
+  if (feedback) { advanceLesson(); return; }
+  const word = lessonQueue[lessonIdx];
+  const correct = similar(input, word.english);
+  feedback = { correct, answer: word.english };
+  sessionTotal++; if(correct) sessionCorrect++;
+  render();
+}
+function advanceLesson() {
+  if (lessonPhase==="learn") { lessonPhase="quiz"; input=""; feedback=null; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); return; }
+  if (lessonIdx+1 < lessonQueue.length) { lessonIdx++; lessonPhase="learn"; input=""; feedback=null; render(); }
+  else {
+    lessonQueue.forEach(w => { progress[w.id] = {...progress[w.id], lessonDone:true, stage:0, nextReview: Date.now()+SRS_INTERVALS[0]*3600000}; });
+    saveProgress(); sessionDone=true; render();
+  }
+}
+function submitReview() {
+  if (feedback) {
+    if (reviewIdx+1 < reviewQueue.length) { reviewIdx++; input=""; feedback=null; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); }
+    else { sessionDone=true; render(); }
+    return;
+  }
+  const {word,type} = reviewQueue[reviewIdx];
+  const expected = type==="meaning" ? word.english : word.dutch;
+  const correct = similar(input, expected);
+  feedback = { correct, answer: expected };
+  sessionTotal++; if(correct) sessionCorrect++;
+  const cur = progress[word.id];
+  const newStage = correct ? Math.min(cur.stage+1,SRS_STAGES.length-1) : Math.max(cur.stage-1,0);
+  progress[word.id] = {...cur, stage:newStage, nextReview: Date.now()+SRS_INTERVALS[newStage]*3600000};
+  saveProgress(); render();
+}
+
+function stageCounts() {
+  const counts = {};
+  SRS_STAGES.forEach(s => counts[s]=0);
+  VOCAB.forEach(w => { if(progress[w.id]?.lessonDone) counts[SRS_STAGES[progress[w.id].stage]]++; });
+  return counts;
+}
+
+function render() {
+  const app = document.getElementById("app");
+
+  if (sessionDone) {
+    app.innerHTML = `
+      <div class="done-screen">
+        <div class="emoji">🎉</div>
+        <h2>${screen==="lesson"?"Lessons complete!":"Reviews complete!"}</h2>
+        <p>${sessionCorrect} / ${sessionTotal} correct (${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%)</p>
+        <button class="btn-secondary" onclick="screen='dashboard';render()">Back to dashboard</button>
+      </div>`;
+    return;
+  }
+
+  if (screen==="dashboard") {
+    const due = dueReviews().length;
+    const lessons = lessonsAvailable().length;
+    const sc = stageCounts();
+    const burned = sc["Burned"]||0;
+    const stageGroups = ["Apprentice","Guru","Master","Enlightened","Burned"];
+    const pillsHTML = stageGroups.map(g => {
+      const count = Object.entries(sc).filter(([k])=>k.startsWith(g)).reduce((a,[,v])=>a+v,0);
+      const color = STAGE_COLORS[g+" 1"]||STAGE_COLORS[g];
+      return `<div class="pill"><span class="dot" style="background:${color}"></span><span style="color:#aaa">${g}</span><span style="font-weight:500">${count}</span></div>`;
+    }).join("");
+    const wordsHTML = VOCAB.map(w => {
+      const p = progress[w.id];
+      const color = p?.lessonDone ? STAGE_COLORS[SRS_STAGES[p.stage]] : "#333";
+      return `<div class="word-chip" style="border:0.5px solid ${color}33;background:${color}18"><span class="dot" style="background:${color}"></span>${w.dutch}</div>`;
+    }).join("");
+    app.innerHTML = `
+      <h2>🇳🇱 Dutch Vocab</h2>
+      <p class="sub">Spaced repetition system</p>
+      <div class="grid-3">
+        <div class="metric"><div class="label">Reviews due</div><div class="value" style="color:#2563eb">${due}</div></div>
+        <div class="metric"><div class="label">Lessons left</div><div class="value" style="color:#8a5cf6">${lessons}</div></div>
+        <div class="metric"><div class="label">Words burned</div><div class="value" style="color:#16a34a">${burned}</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-review" onclick="startReviews()" ${due===0?"disabled":""}>Start reviews (${due})</button>
+        <button class="btn-lesson" onclick="startLessons()" ${lessons===0?"disabled":""}>Start lessons (${lessons})</button>
+      </div>
+      <div class="card"><div class="card-label">SRS progress</div><div class="stage-pills">${pillsHTML}</div></div>
+      <div class="card"><div class="card-label">All words</div><div class="words-grid">${wordsHTML}</div></div>`;
+    return;
+  }
+
+  if (screen==="lesson") {
+    const word = lessonQueue[lessonIdx];
+    if (lessonPhase==="learn") {
+      app.innerHTML = `
+        <div class="review-header">
+          <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
+          <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length}</span>
+        </div>
+        <div style="text-align:center">
+          <div class="direction-label">Lesson</div>
+          <div class="big-word">${word.dutch}</div>
+          ${word.article?`<div style="color:#888;font-size:16px;margin-bottom:4px">${word.article} ${word.dutch}</div>`:""}
+          <div style="font-size:24px;color:#888;margin:1rem 0 2rem">${word.english}</div>
+          <button class="btn-check" style="background:#8a5cf6" onclick="advanceLesson()">I know this →</button>
+        </div>`;
+    } else {
+      const inputClass = feedback ? (feedback.correct?"correct":"wrong") : "";
+      app.innerHTML = `
+        <div class="review-header">
+          <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
+          <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length}</span>
+        </div>
+        <div style="text-align:center">
+          <div class="direction-label">Quiz</div>
+          <div class="big-word">${word.dutch}</div>
+          <div class="prompt-label">What is the English meaning?</div>
+          <input id="answer-input" type="text" class="${inputClass}" value="${input.replace(/"/g,'&quot;')}" placeholder="Type meaning in English…" ${feedback?"disabled":""} />
+          ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Correct answer: "+feedback.answer}</div>`:""}
+          <button class="btn-check" style="background:${feedback?"#1a1a1a":"#8a5cf6"};color:${feedback?"#f0f0f0":"#fff"}" onclick="${feedback?"advanceLesson":"submitLesson"}()">
+            ${feedback?(lessonIdx+1<lessonQueue.length?"Next word →":"Finish lessons"):"Check →"}
+          </button>
+        </div>`;
+      if (!feedback) {
+        const inp = document.getElementById("answer-input");
+        inp?.addEventListener("input", e => { input = e.target.value; });
+        inp?.addEventListener("keydown", e => { if(e.key==="Enter") submitLesson(); });
+        inp?.focus();
+      }
+    }
+    return;
+  }
+
+  if (screen==="review") {
+    const {word,type} = reviewQueue[reviewIdx];
+    const prompt = type==="meaning" ? word.dutch : word.english;
+    const label = type==="meaning" ? "What is the English meaning?" : "How do you write this in Dutch?";
+    const stageColor = STAGE_COLORS[SRS_STAGES[progress[word.id].stage]]||"#888";
+    const inputClass = feedback ? (feedback.correct?"correct":"wrong") : "";
+    app.innerHTML = `
+      <div class="review-header">
+        <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
+        <span style="font-size:13px;color:#888">${reviewIdx+1} / ${reviewQueue.length}</span>
+        <span class="stage-badge" style="background:${stageColor}22;color:${stageColor}">${SRS_STAGES[progress[word.id].stage]}</span>
+      </div>
+      <div style="text-align:center">
+        <div class="direction-label">${type==="meaning"?"🇳🇱 Dutch → English":"🇬🇧 English → Dutch"}</div>
+        <div class="big-word">${prompt}</div>
+        <div class="prompt-label">${label}</div>
+        <input id="answer-input" type="text" class="${inputClass}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""} />
+        ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<div style="font-size:13px;margin-top:4px">Article: ${word.article}</div>`:""}</div>`:""}
+        <button class="btn-check" style="background:${feedback?(feedback.correct?"#16a34a":"#dc2626"):"#2563eb"}" onclick="submitReview()">
+          ${feedback?(reviewIdx+1<reviewQueue.length?"Next →":"Finish reviews"):"Check →"}
+        </button>
+      </div>
+      <div class="stats-bar">
+        <span>✓ ${sessionCorrect} correct</span>
+        <span>✗ ${sessionTotal-sessionCorrect} wrong</span>
+        <span>${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%</span>
+      </div>`;
+    if (!feedback) {
+      const inp = document.getElementById("answer-input");
+      inp?.addEventListener("input", e => { input = e.target.value; });
+      inp?.addEventListener("keydown", e => { if(e.key==="Enter") submitReview(); });
+      inp?.focus();
+    }
+  }
+}
+
+async function init() {
+  try {
+    const res = await fetch("words.json");
+    VOCAB = await res.json();
+  } catch(e) {
+    VOCAB = [];
+  }
+  loadProgress();
+  initProgress();
+  render();
+}
+init();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+[
+  { "id": 1,  "dutch": "huis",    "english": "house",   "article": "het" },
+  { "id": 2,  "dutch": "hond",    "english": "dog",     "article": "de" },
+  { "id": 3,  "dutch": "kat",     "english": "cat",     "article": "de" },
+  { "id": 4,  "dutch": "water",   "english": "water",   "article": "het" },
+  { "id": 5,  "dutch": "boek",    "english": "book",    "article": "het" },
+  { "id": 6,  "dutch": "auto",    "english": "car",     "article": "de" },
+  { "id": 7,  "dutch": "dag",     "english": "day",     "article": "de" },
+  { "id": 8,  "dutch": "nacht",   "english": "night",   "article": "de" },
+  { "id": 9,  "dutch": "goed",    "english": "good",    "article": null },
+  { "id": 10, "dutch": "slecht",  "english": "bad",     "article": null },
+  { "id": 11, "dutch": "eten",    "english": "to eat",  "article": null },
+  { "id": 12, "dutch": "drinken", "english": "to drink","article": null },
+  { "id": 13, "dutch": "lopen",   "english": "to walk", "article": null },
+  { "id": 14, "dutch": "praten",  "english": "to talk", "article": null },
+  { "id": 15, "dutch": "groot",   "english": "big",     "article": null },
+  { "id": 16, "dutch": "klein",   "english": "small",   "article": null },
+  { "id": 17, "dutch": "rood",    "english": "red",     "article": null },
+  { "id": 18, "dutch": "blauw",   "english": "blue",    "article": null },
+  { "id": 19, "dutch": "tijd",    "english": "time",    "article": "de" },
+  { "id": 20, "dutch": "wereld",  "english": "world",   "article": "de" }
+]

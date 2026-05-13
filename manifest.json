@@ -1,0 +1,20 @@
+{
+  "name": "Dutch Vocab",
+  "short_name": "Dutch",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#8a5cf6",
+  "icons": [
+    {
+      "src": "https://fakeimg.pl/192x192/8a5cf6/ffffff?text=NL&font_size=80",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://fakeimg.pl/512x512/8a5cf6/ffffff?text=NL&font_size=200",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
