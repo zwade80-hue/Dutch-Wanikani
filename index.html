@@ -505,6 +505,13 @@ function renderLesson(app) {
   }
 }
 
+// ── GLOBAL ENTER HANDLER ───────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  if (screen === "review" && feedback) { e.preventDefault(); submitReview(); }
+  else if (screen === "lesson" && feedback) { e.preventDefault(); submitLesson(); }
+});
+
 // ── REVIEW RENDER ──────────────────────────────────────────────────────────
 function renderReview(app) {
   const{word,type}=reviewQueue[reviewIdx];
