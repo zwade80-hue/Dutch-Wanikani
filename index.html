@@ -546,7 +546,8 @@ function renderReview(app) {
 // ── GLOBAL ENTER ───────────────────────────────────────────────────────────
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter") return;
-  if (!feedback) return; // input handles Enter when no feedback yet
+  const inp = document.getElementById("answer-input");
+  if (!inp || !inp.disabled) return; // only fire when input is locked (feedback showing)
   e.preventDefault();
   if (screen === "review") submitReview();
   else if (screen === "lesson") submitLesson();
