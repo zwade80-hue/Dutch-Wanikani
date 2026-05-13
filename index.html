@@ -490,9 +490,9 @@ function renderLesson(app) {
         <div class="direction-label">${dirLabel}</div>
         <div class="big-word">${prompt}</div>
         <div class="prompt-label">${isMeaning?"What is the English meaning?":"How do you write this in Dutch?"}</div>
-        <input id="answer-input" type="text" class="${ic}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}" ${feedback?"disabled":""}/>
+        <input id="answer-input" type="text" class="${ic}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}"/>
         ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Wrong — correct answer: "+feedback.answer}</div>`:""}
-        <button class="btn-check" style="background:${feedback?(feedback.correct?"#8a5cf6":"#dc2626"):"#8a5cf6"}" onclick="submitLesson()">
+        <button id="next-btn" class="btn-check" style="background:${feedback?(feedback.correct?"#8a5cf6":"#dc2626"):"#8a5cf6"}" onclick="submitLesson()">
           ${feedback?nextLabel:"Check →"}
         </button>
       </div>`;
@@ -526,7 +526,7 @@ function renderReview(app) {
       <div class="prompt-label">${label}</div>
       <input id="answer-input" type="text" class="${ic}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""}/>
       ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<div style="font-size:13px;margin-top:4px">Article: ${word.article}</div>`:""}</div>`:""}
-      <button class="btn-check" style="background:${feedback?(feedback.correct?"#16a34a":"#dc2626"):"#2563eb"}" onclick="submitReview()">
+      <button id="next-btn" class="btn-check" style="background:${feedback?(feedback.correct?"#16a34a":"#dc2626"):"#2563eb"}" onclick="submitReview()">
         ${feedback?(reviewIdx+1<reviewQueue.length?"Next →":"Finish reviews"):"Check →"}
       </button>
     </div>
@@ -540,11 +540,12 @@ function renderReview(app) {
     inp?.addEventListener("input",e=>{input=e.target.value;});
     inp?.addEventListener("keydown",e=>{if(e.key==="Enter")submitReview();});
           inp?.focus();
+      inp?.addEventListener("input", e => { if (!feedback) input = e.target.value; else e.target.value = input; });
       inp?.addEventListener("keydown", e => {
         if (e.key !== "Enter") return;
         e.preventDefault();
-        e.stopPropagation();
-        if (!feedback) { input = inp.value; submitLesson(); }
+        input = inp.value;
+        if (!feedback) submitLesson();
         else submitLesson();
       });
   }
