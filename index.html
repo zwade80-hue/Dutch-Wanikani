@@ -106,6 +106,7 @@ const STAGE_COLORS = {"Apprentice 1":"#e85d9b","Apprentice 2":"#e85d9b","Apprent
 const WORDS_PER_LEVEL = 83;
 const LESSONS_PER_DAY = 15;
 const GURU_THRESHOLD  = 0.9;
+const HOUR_MS = 3600000;
 
 let VOCAB=[], progress={}, currentLevel=1;
 let screen="dashboard", selectedWord=null;
@@ -113,6 +114,7 @@ let reviewQueue=[], reviewIdx=0;
 let lessonQueue=[], lessonIdx=0, lessonPhase="learn";
 let input="", feedback=null;
 let sessionCorrect=0, sessionTotal=0, sessionDone=false, showLevelUp=false;
+let sessionStartTime=null;
 
 function save(){
   localStorage.setItem("dutch-progress",JSON.stringify(progress));
@@ -121,6 +123,132 @@ function save(){
 function load(){
   const p=localStorage.getItem("dutch-progress"); if(p) progress=JSON.parse(p);
   currentLevel=parseInt(localStorage.getItem("dutch-level")||"1");
+}
+
+// ── WORD TYPE DETECTION ────────────────────────────────────────────────────
+const KNOWN_ADJECTIVES = new Set([
+  "good","bad","big","small","red","blue","new","old","hot","cold","fast","slow",
+  "happy","sad","angry","tired","sick","healthy","clean","dirty","empty","full",
+  "heavy","light","dark","bright","loud","quiet","hard","soft","warm","cool",
+  "easy","difficult","important","famous","free","busy","rich","poor","safe",
+  "dangerous","beautiful","ugly","tall","short","long","wide","narrow","deep",
+  "shallow","thick","thin","sharp","flat","round","straight","wrong","right",
+  "true","false","real","fake","late","early","near","far","open","closed",
+  "young","strong","weak","fresh","frozen","raw","cooked","sweet","sour","salty",
+  "spicy","creamy","tasty","boring","funny","scary","strange","normal","special",
+  "different","same","next","last","first","second","certain","possible","necessary",
+  "available","reliable","mutual","daily","nervous","lonely","calm","patient",
+  "honest","friendly","adventurous","notorious","indifferent","impressive",
+  "valuable","intense","unique","pleasant","notorious","savory","tender",
+  "slippery","creamy","sunny","cozy","relieved","satisfied","ready","finished",
+  "greasy","expensive","cheap","lucky","careful","careless","efficient","accurate"
+]);
+const KNOWN_ADVERBS = new Set([
+  "always","never","often","sometimes","usually","mostly","already","still",
+  "just","also","too","very","really","quite","rather","almost","nearly",
+  "soon","now","today","yesterday","tomorrow","here","there","together",
+  "immediately","suddenly","slowly","quickly","carefully","clearly","loudly",
+  "quietly","fluently","efficiently","accurately","recently","lately","early",
+  "later","finally","eventually","probably","certainly","perhaps","maybe",
+  "especially","actually","honestly","basically","generally","normally",
+  "approximately","at least","by the way","indeed","nevertheless","otherwise",
+  "therefore","however","although","enough","hardly","merely","only","even",
+  "else","instead","rather","mostly","mostly","overall","instead"
+]);
+const KNOWN_CONJUNCTIONS = new Set([
+  "and","but","or","because","although","while","when","if","that","so",
+  "however","therefore","nevertheless","otherwise","whether","until","before",
+  "after","since","unless","except","despite","during","without","between",
+  "among","each other","by the way"
+]);
+const KNOWN_PRONOUNS = new Set([
+  "someone","everyone","nobody","anyone","something","everything","nothing",
+  "each other","how much / how many"
+]);
+
+function detectType(word) {
+  const eng = word.english.toLowerCase().trim();
+  // verb
+  if(eng.startsWith("to ")) return "verb";
+  // multiple meanings — check first
+  const first = eng.split("/")[0].trim();
+  if(first.startsWith("to ")) return "verb";
+  // adverb
+  if(KNOWN_ADVERBS.has(eng)||KNOWN_ADVERBS.has(first)) return "adverb";
+  // conjunction/particle
+  if(KNOWN_CONJUNCTIONS.has(eng)||KNOWN_CONJUNCTIONS.has(first)) return "other";
+  // pronoun
+  if(KNOWN_PRONOUNS.has(eng)||KNOWN_PRONOUNS.has(first)) return "other";
+  // adjective
+  if(KNOWN_ADJECTIVES.has(eng)||KNOWN_ADJECTIVES.has(first)) return "adjective";
+  // ends in -ly usually adverb
+  if(eng.endsWith("ly")||first.endsWith("ly")) return "adverb";
+  // default noun
+  return "noun";
+}
+
+const TYPE_COLORS = { noun:"#2563eb", verb:"#e85d9b", adjective:"#f59e0b", adverb:"#16a34a", other:"#888" };
+const TYPE_LABELS = { noun:"Noun", verb:"Verb", adjective:"Adjective", adverb:"Adverb", other:"Other" };
+function getStreak(){
+  const today=new Date().toDateString();
+  const last=localStorage.getItem("dutch-streak-date");
+  const count=parseInt(localStorage.getItem("dutch-streak")||"0");
+  if(last===today) return count;
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  if(last===yesterday) return count;
+  return 0;
+}
+function updateStreak(){
+  const today=new Date().toDateString();
+  const last=localStorage.getItem("dutch-streak-date");
+  const count=parseInt(localStorage.getItem("dutch-streak")||"0");
+  if(last===today) return;
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  const newCount=last===yesterday?count+1:1;
+  localStorage.setItem("dutch-streak",newCount);
+  localStorage.setItem("dutch-streak-date",today);
+}
+
+// ── TIME STUDIED ───────────────────────────────────────────────────────────
+function addStudyTime(ms){
+  const today=new Date().toDateString();
+  const last=localStorage.getItem("dutch-time-date");
+  const total=last===today?parseInt(localStorage.getItem("dutch-time-today")||"0"):0;
+  localStorage.setItem("dutch-time-date",today);
+  localStorage.setItem("dutch-time-today",total+ms);
+  const allTime=parseInt(localStorage.getItem("dutch-time-all")||"0");
+  localStorage.setItem("dutch-time-all",allTime+ms);
+}
+function formatTime(ms){
+  const m=Math.floor(ms/60000), h=Math.floor(m/60);
+  if(h>0) return `${h}h ${m%60}m`;
+  return `${m}m`;
+}
+
+// ── ACCURACY PER WORD ──────────────────────────────────────────────────────
+function recordAccuracy(wordId, correct){
+  const key=`dutch-acc-${wordId}`;
+  const data=JSON.parse(localStorage.getItem(key)||'{"c":0,"t":0}');
+  data.t++; if(correct) data.c++;
+  localStorage.setItem(key,JSON.stringify(data));
+}
+function getAccuracy(wordId){
+  const data=JSON.parse(localStorage.getItem(`dutch-acc-${wordId}`)||'{"c":0,"t":0}');
+  return data.t===0?null:Math.round(data.c/data.t*100);
+}
+
+// ── UPCOMING REVIEWS ───────────────────────────────────────────────────────
+function getUpcomingReviews(){
+  const now=Date.now();
+  const hours=[];
+  for(let i=0;i<24;i++) hours.push(0);
+  VOCAB.forEach(w=>{
+    const p=progress[w.id];
+    if(!p?.lessonDone||p.nextReview<=now) return;
+    const hoursFromNow=Math.floor((p.nextReview-now)/HOUR_MS);
+    if(hoursFromNow<24) hours[hoursFromNow]++;
+  });
+  return hours;
 }
 function initProgress(){
   VOCAB.forEach(w=>{if(!progress[w.id]) progress[w.id]={stage:0,nextReview:Date.now(),lessonDone:false};});
@@ -161,6 +289,7 @@ function startLessons(){
   lessonQueue=availableLessons(); if(!lessonQueue.length) return;
   lessonIdx=0; lessonPhase="learn"; input=""; feedback=null;
   sessionCorrect=0; sessionTotal=0; sessionDone=false; showLevelUp=false;
+  sessionStartTime=Date.now();
   screen="lesson"; render();
 }
 function startReviews(){
@@ -170,6 +299,7 @@ function startReviews(){
   for(let i=reviewQueue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[reviewQueue[i],reviewQueue[j]]=[reviewQueue[j],reviewQueue[i]];}
   reviewIdx=0; input=""; feedback=null;
   sessionCorrect=0; sessionTotal=0; sessionDone=false; showLevelUp=false;
+  sessionStartTime=Date.now();
   screen="review"; render();
 }
 
@@ -195,6 +325,7 @@ function submitReview(){
   const correct=similar(input,expected);
   const newStage=correct?Math.min(cur.stage+1,SRS_STAGES.length-1):Math.max(cur.stage-1,0);
   progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
+  recordAccuracy(word.id,correct);
   save();
   checkAnswer(expected);
 }
@@ -210,7 +341,7 @@ function advanceLesson(){
     const given=lessonsToday();
     localStorage.setItem("dutch-lastday",today);
     localStorage.setItem("dutch-lessonstoday",given+lessonQueue.length);
-    const leveled=checkLevelUp(); save(); sessionDone=true; showLevelUp=leveled; render();
+    finishSession(); const leveled=checkLevelUp(); save(); sessionDone=true; showLevelUp=leveled; render();
   }
 }
 function submitLesson(){
@@ -265,26 +396,70 @@ function renderDashboard(app){
   const pct=Math.round(levelProgress(currentLevel)*100);
   const gurus=guruCount(currentLevel), total=wordsForLevel(currentLevel).length;
   const needed=Math.ceil(total*GURU_THRESHOLD);
+  const streak=getStreak();
+  const todayMs=parseInt(localStorage.getItem("dutch-time-date")===new Date().toDateString()?localStorage.getItem("dutch-time-today")||"0":"0");
+  const allMs=parseInt(localStorage.getItem("dutch-time-all")||"0");
+
+  // accuracy across all words
+  let totalC=0,totalT=0;
+  VOCAB.forEach(w=>{ const d=JSON.parse(localStorage.getItem(`dutch-acc-${w.id}`)||'{"c":0,"t":0}'); totalC+=d.c; totalT+=d.t; });
+  const overallAcc=totalT>0?Math.round(totalC/totalT*100):null;
+
   const pillsHTML=["Apprentice","Guru","Master","Enlightened","Burned"].map(g=>{
     const count=Object.entries(sc).filter(([k])=>k.startsWith(g)).reduce((a,[,v])=>a+v,0);
     const color=STAGE_COLORS[g+" 1"]||STAGE_COLORS[g];
     return `<div class="pill"><span class="dot" style="background:${color}"></span><span style="color:#aaa">${g}</span><span style="font-weight:500">${count}</span></div>`;
   }).join("");
+
+  // forecast chart
+  const upcoming=getUpcomingReviews();
+  const maxBar=Math.max(...upcoming,1);
+  const now=new Date();
+  const chartBars=upcoming.map((count,i)=>{
+    const h=(now.getHours()+i)%24;
+    const ampm=h>=12?"pm":"am";
+    const label=h===0?"12am":h===12?"12pm":h>12?`${h-12}${ampm}`:`${h}${ampm}`;
+    const height=count>0?Math.max(Math.round(count/maxBar*60),4):0;
+    const isNow=i===0;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
+      ${count>0?`<span style="font-size:10px;color:#888">${count}</span>`:`<span style="font-size:10px;color:transparent">0</span>`}
+      <div style="width:100%;height:${height}px;background:${isNow?"#2563eb":"#8a5cf6"};border-radius:3px 3px 0 0;min-height:${count>0?4:0}px"></div>
+      <span style="font-size:9px;color:#555;white-space:nowrap">${label}</span>
+    </div>`;
+  }).join("");
+
   app.innerHTML=`${navHTML("dashboard")}
     <h2>🇳🇱 Dutch Vocab</h2><p class="sub">Spaced repetition system</p>
+
     <div class="level-bar-wrap">
       <div class="level-header"><span class="level-title">Level ${currentLevel}</span><span class="level-pct">${gurus}/${needed} Guru to level up</span></div>
       <div class="level-bar"><div class="level-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
     </div>
+
     <div class="grid-3">
       <div class="metric"><div class="label">Reviews due</div><div class="value" style="color:#2563eb">${due}</div></div>
       <div class="metric"><div class="label">Lessons today</div><div class="value" style="color:#8a5cf6">${lessons}</div></div>
       <div class="metric"><div class="label">Words burned</div><div class="value" style="color:#16a34a">${burned}</div></div>
     </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem">
+      <div class="metric"><div class="label">🔥 Streak</div><div class="value" style="color:#f59e0b">${streak}<span style="font-size:14px;color:#888"> days</span></div></div>
+      <div class="metric"><div class="label">🎯 Accuracy</div><div class="value" style="color:#e85d9b">${overallAcc!==null?overallAcc+"%":"—"}</div></div>
+      <div class="metric"><div class="label">⏱ Today</div><div class="value" style="color:#0ea5e9;font-size:20px">${todayMs>0?formatTime(todayMs):"—"}</div></div>
+    </div>
+
     <div class="btn-row">
       <button class="btn-review" onclick="startReviews()" ${due===0?"disabled":""}>Start reviews (${due})</button>
       <button class="btn-lesson" onclick="startLessons()" ${lessons===0?"disabled":""}>Start lessons (${lessons})</button>
     </div>
+
+    <div class="card">
+      <div class="card-label">Upcoming reviews — next 24 hours</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:80px;padding-top:16px">
+        ${chartBars}
+      </div>
+    </div>
+
     <div class="card"><div class="card-label">SRS progress</div><div class="stage-pills">${pillsHTML}</div></div>`;
 }
 
@@ -293,24 +468,59 @@ function renderBrowse(app){
   let html="";
   for(let lvl=1;lvl<=maxLevel;lvl++){
     const words=wordsForLevel(lvl), unlocked=lvl<=currentLevel;
-    const cards=words.map(w=>{
-      const color=stageColor(w), locked=!unlocked;
-      return `<div class="browse-card${locked?" locked":""}" style="${locked?"":"background:"+color+"22;border-color:"+color+"44"}" onclick="${locked?"":"openWord("+w.id+")"}">
-        <div class="dutch" style="color:${locked?"#444":color}">${w.dutch}</div>
-        <div class="english">${locked?"???":w.english}</div>
-      </div>`;
-    }).join("");
     const guruPct=Math.round(levelProgress(lvl)*100);
+
+    // group by type
+    const groups={noun:[],verb:[],adjective:[],adverb:[],other:[]};
+    words.forEach(w=>groups[detectType(w)].push(w));
+
+    let groupsHTML="";
+    for(const [type,ws] of Object.entries(groups)){
+      if(!ws.length) continue;
+      const color=TYPE_COLORS[type];
+      const cards=ws.map(w=>{
+        const wcolor=stageColor(w), locked=!unlocked;
+        return `<div class="browse-card${locked?" locked":""}" style="${locked?"":"background:"+wcolor+"22;border-color:"+wcolor+"44"}" onclick="${locked?"":"openWord("+w.id+")"}">
+          <div class="dutch" style="color:${locked?"#444":wcolor}">${w.dutch}</div>
+          <div class="english">${locked?"???":w.english}</div>
+        </div>`;
+      }).join("");
+      groupsHTML+=`
+        <div style="margin-bottom:1rem">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:${color}22;color:${color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px">${TYPE_LABELS[type]}</span>
+            <span style="font-size:12px;color:#555">${ws.length} words</span>
+          </div>
+          <div class="browse-grid">${cards}</div>
+        </div>`;
+    }
+
     html+=`<div class="browse-level-section">
       <div class="browse-level-header">
         <span class="browse-level-badge">Level ${lvl}</span>
         <span class="browse-level-title">${words.length} words</span>
         <span class="browse-level-lock">${unlocked?(lvl===currentLevel?guruPct+"% to next level":"✓ complete"):"🔒 locked"}</span>
       </div>
-      <div class="browse-grid">${cards}</div>
+      ${groupsHTML}
     </div>`;
   }
-  app.innerHTML=`${navHTML("browse")}<h2 style="margin-bottom:1rem">All words</h2>${html}${selectedWord?renderModal():""}`;
+
+  // type summary bar at top
+  const typeCounts={noun:0,verb:0,adjective:0,adverb:0,other:0};
+  VOCAB.forEach(w=>{ if(progress[w.id]?.lessonDone) typeCounts[detectType(w)]++; });
+  const summaryHTML=Object.entries(typeCounts).map(([type,count])=>`
+    <div style="text-align:center">
+      <div style="font-size:11px;color:${TYPE_COLORS[type]};font-weight:600;margin-bottom:2px">${TYPE_LABELS[type]}</div>
+      <div style="font-size:18px;font-weight:500">${count}</div>
+    </div>`).join("");
+
+  app.innerHTML=`${navHTML("browse")}
+    <h2 style="margin-bottom:1rem">All words</h2>
+    <div style="display:flex;justify-content:space-around;background:#0f0f1fee;border:0.5px solid #2a2a4a;border-radius:12px;padding:1rem;margin-bottom:1.5rem">
+      ${summaryHTML}
+    </div>
+    ${html}
+    ${selectedWord?renderModal():""}`;
 }
 
 function openWord(id){ selectedWord=VOCAB.find(w=>w.id===id); render(); }
@@ -320,12 +530,19 @@ function renderModal(){
   const stage=p?.lessonDone?SRS_STAGES[p.stage]:"Not started";
   const color=stageColor(w);
   const next=p?.lessonDone&&p.nextReview>Date.now()?new Date(p.nextReview).toLocaleDateString():p?.lessonDone?"Due now":"—";
+  const acc=getAccuracy(w.id);
+  const type=detectType(w);
+  const typeColor=TYPE_COLORS[type];
   return `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+    <div style="text-align:center;margin-bottom:8px">
+      <span style="background:${typeColor}22;color:${typeColor};font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px">${TYPE_LABELS[type]}</span>
+    </div>
     <div class="modal-word" style="color:${color}">${w.dutch}</div>
     ${w.article?`<div class="modal-article">${w.article} ${w.dutch}</div>`:""}
     <div class="modal-english">${w.english}</div>
     <div class="modal-row"><span style="color:#888">SRS stage</span><span style="color:${color};font-weight:500">${stage}</span></div>
     <div class="modal-row"><span style="color:#888">Next review</span><span>${next}</span></div>
+    <div class="modal-row"><span style="color:#888">Accuracy</span><span>${acc!==null?acc+"%":"—"}</span></div>
     <div class="modal-row"><span style="color:#888">Article</span><span>${w.article||"—"}</span></div>
     <button class="modal-close btn-secondary" onclick="closeModal()">Close</button>
   </div></div>`;
