@@ -543,6 +543,15 @@ function renderReview(app) {
   }
 }
 
+// ── GLOBAL ENTER ───────────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  if (!feedback) return; // input handles Enter when no feedback yet
+  e.preventDefault();
+  if (screen === "review") submitReview();
+  else if (screen === "lesson") submitLesson();
+});
+
 // ── INIT ───────────────────────────────────────────────────────────────────
 async function init() {
   try { const r=await fetch("words.json"); VOCAB=await r.json(); } catch(e){ VOCAB=[]; }
