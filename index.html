@@ -105,9 +105,33 @@ const SRS_INTERVALS= [4,8,24,72,168,336,730,2160,Infinity];
 const STAGE_COLORS = {"Apprentice 1":"#e85d9b","Apprentice 2":"#e85d9b","Apprentice 3":"#e85d9b","Apprentice 4":"#e85d9b","Guru 1":"#8a5cf6","Guru 2":"#8a5cf6","Master":"#2563eb","Enlightened":"#0ea5e9","Burned":"#16a34a"};
 const WORDS_PER_LEVEL = 83;
 const MAX_LEVEL = 60;
-const LESSONS_PER_DAY = 15;
 const GURU_THRESHOLD  = 0.9;
 const HOUR_MS = 3600000;
+
+// ── SETTINGS ───────────────────────────────────────────────────────────────
+let settings = {
+  lessonsPerDay: 15,
+  reviewOrder: "shuffle",   // "shuffle" | "level" | "stage"
+  lightMode: false,
+};
+function loadSettings(){
+  const s=localStorage.getItem("dutch-settings");
+  if(s) settings={...settings,...JSON.parse(s)};
+  applyTheme();
+}
+function saveSettings(){
+  localStorage.setItem("dutch-settings",JSON.stringify(settings));
+  applyTheme();
+}
+function applyTheme(){
+  if(settings.lightMode){
+    document.body.style.background="#f5f5f0";
+    document.body.style.color="#1a1a2e";
+  } else {
+    document.body.style.background="#0a0a1a";
+    document.body.style.color="#f0f0f0";
+  }
+}
 
 let VOCAB=[], progress={}, currentLevel=1;
 let screen="dashboard", selectedWord=null;
@@ -122,6 +146,7 @@ function save(){
   localStorage.setItem("dutch-level",currentLevel);
 }
 function load(){
+  loadSettings();
   const p=localStorage.getItem("dutch-progress"); if(p) progress=JSON.parse(p);
   currentLevel=parseInt(localStorage.getItem("dutch-level")||"1");
 }
@@ -282,11 +307,16 @@ function lessonsToday(){
   return last===today?parseInt(localStorage.getItem("dutch-lessonstoday")||"0"):0;
 }
 function availableLessons(){
-  const rem=LESSONS_PER_DAY-lessonsToday();
+  const rem=settings.lessonsPerDay-lessonsToday();
   if(rem<=0) return [];
   return wordsForLevel(currentLevel).filter(w=>!progress[w.id]?.lessonDone).slice(0,rem);
 }
-function dueReviews(){ return VOCAB.filter(w=>progress[w.id]?.lessonDone&&progress[w.id]?.nextReview<=Date.now()); }
+function dueReviews(){
+  let due=VOCAB.filter(w=>progress[w.id]?.lessonDone&&progress[w.id]?.nextReview<=Date.now());
+  if(settings.reviewOrder==="level") due.sort((a,b)=>a.id-b.id);
+  else if(settings.reviewOrder==="stage") due.sort((a,b)=>progress[a.id].stage-progress[b.id].stage);
+  return due;
+}
 function normalize(s){ return s.trim().toLowerCase().replace(/[^a-z ]/g,""); }
 function similar(a,b){
   a=normalize(a); b=normalize(b);
@@ -372,6 +402,7 @@ function navHTML(active){
   return `<nav>
     <button class="${active==="dashboard"?"active":""}" onclick="screen='dashboard';selectedWord=null;render()">Dashboard</button>
     <button class="${active==="browse"?"active":""}" onclick="screen='browse';render()">Browse</button>
+    <button class="${active==="settings"?"active":""}" onclick="screen='settings';render()">Settings</button>
   </nav>`;
 }
 
@@ -401,6 +432,7 @@ function render(){
   else if(screen==="browse") renderBrowse(app);
   else if(screen==="lesson") renderLesson(app);
   else if(screen==="review") renderReview(app);
+  else if(screen==="settings") renderSettings(app);
 }
 
 function renderDashboard(app){
@@ -614,7 +646,7 @@ function renderLesson(app){
       <div class="big-word">${prompt}</div>
       <div class="prompt-label">${isMeaning?"What is the English meaning?":"How do you write this in Dutch?"}</div>
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}" ${feedback?"disabled":""}/>
-      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Wrong — correct answer: "+feedback.answer}</div>`:""}
+      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}</div>${closeEnoughBtn(lessonPhase==="quiz-meaning"?"meaning":"dutch")}`:""}
       <button id="next-btn" class="check-btn" style="background:${btnColor}" onclick="submitLesson()">${feedback?nextLabel:"Check →"}</button>
     </div>
   </div>`;
@@ -646,7 +678,7 @@ function renderReview(app){
       <div class="big-word">${prompt}</div>
       <div class="prompt-label">${label}</div>
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""}/>
-      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?"✓ Correct!":"✗ Wrong — correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<br><small>Article: ${word.article}</small>`:""}</div>`:""}
+      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<br><small>Article: ${word.article}</small>`:""}</div>${closeEnoughBtn(type)}`:""}
       <button id="next-btn" class="check-btn" style="background:${btnColor}" onclick="submitReview()">${feedback?nextLabel:"Check →"}</button>
     </div>
     <div class="stats-bar">
@@ -663,6 +695,67 @@ function renderReview(app){
   } else {
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
   }
+}
+
+// ── SETTINGS PAGE ─────────────────────────────────────────────────────────
+function renderSettings(app){
+  app.innerHTML=`${navHTML("settings")}
+    <h2>Settings</h2><p class="sub">Customize your study experience</p>
+
+    <div class="card">
+      <div class="card-label">Daily lesson limit</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <input type="range" min="5" max="50" step="5" value="${settings.lessonsPerDay}"
+          style="flex:1;accent-color:#8a5cf6"
+          oninput="this.nextElementSibling.textContent=this.value;settings.lessonsPerDay=parseInt(this.value);saveSettings()"/>
+        <span style="font-size:20px;font-weight:500;min-width:36px;text-align:right">${settings.lessonsPerDay}</span>
+      </div>
+      <p style="font-size:12px;color:#555;margin-top:8px">Words introduced per day. Lower = less overwhelm, higher = faster progress.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Review order</div>
+      ${[["shuffle","🔀 Shuffled (recommended)"],["level","📶 By level (lowest first)"],["stage","⬆️ By SRS stage (lowest first)"]].map(([val,label])=>`
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;border-bottom:0.5px solid #2a2a3a">
+          <input type="radio" name="reviewOrder" value="${val}" ${settings.reviewOrder===val?"checked":""} accent-color="#8a5cf6"
+            onchange="settings.reviewOrder='${val}';saveSettings()"/>
+          <span style="font-size:14px">${label}</span>
+        </label>`).join("")}
+    </div>
+
+    <div class="card">
+      <div class="card-label">Appearance</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <span style="font-size:14px">Light mode</span>
+        <input type="checkbox" ${settings.lightMode?"checked":""} style="width:18px;height:18px;accent-color:#8a5cf6"
+          onchange="settings.lightMode=this.checked;saveSettings();render()"/>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Progress</div>
+      <button class="btn-secondary" style="background:#1a1a2e;color:#f87171;border-color:#7f1d1d;margin-top:0"
+        onclick="if(confirm('Reset ALL progress? This cannot be undone.')){localStorage.clear();progress={};currentLevel=1;initProgress();screen='dashboard';render()}">
+        Reset all progress
+      </button>
+    </div>`;
+}
+
+// ── CLOSE ENOUGH (meaning only) ───────────────────────────────────────────
+function markCloseEnough(){
+  // treat as correct for session score but don't advance SRS stage
+  feedback={correct:true,answer:feedback.answer,closeEnough:true};
+  sessionCorrect++;
+  render();
+  setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
+}
+
+function closeEnoughBtn(type){
+  // only show on meaning (English) answers, not Dutch input
+  if(!feedback||feedback.correct||type!=="meaning") return "";
+  return `<button onclick="markCloseEnough()" style="width:100%;margin-top:8px;background:#78350f44;color:#fbbf24;border:0.5px solid #78350f;border-radius:8px;padding:10px;font-size:14px">
+    Close enough — I had a typo
+  </button>`;
 }
 
 async function init(){
