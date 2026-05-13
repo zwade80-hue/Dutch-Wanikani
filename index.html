@@ -104,6 +104,7 @@ const SRS_STAGES   = ["Apprentice 1","Apprentice 2","Apprentice 3","Apprentice 4
 const SRS_INTERVALS= [4,8,24,72,168,336,730,2160,Infinity];
 const STAGE_COLORS = {"Apprentice 1":"#e85d9b","Apprentice 2":"#e85d9b","Apprentice 3":"#e85d9b","Apprentice 4":"#e85d9b","Guru 1":"#8a5cf6","Guru 2":"#8a5cf6","Master":"#2563eb","Enlightened":"#0ea5e9","Burned":"#16a34a"};
 const WORDS_PER_LEVEL = 83;
+const MAX_LEVEL = 60;
 const LESSONS_PER_DAY = 15;
 const GURU_THRESHOLD  = 0.9;
 const HOUR_MS = 3600000;
@@ -153,7 +154,7 @@ const KNOWN_ADVERBS = new Set([
   "especially","actually","honestly","basically","generally","normally",
   "approximately","at least","by the way","indeed","nevertheless","otherwise",
   "therefore","however","although","enough","hardly","merely","only","even",
-  "else","instead","rather","mostly","mostly","overall","instead"
+  "else","instead","rather","mostly","overall"
 ]);
 const KNOWN_CONJUNCTIONS = new Set([
   "and","but","or","because","although","while","when","if","that","so",
@@ -168,27 +169,20 @@ const KNOWN_PRONOUNS = new Set([
 
 function detectType(word) {
   const eng = word.english.toLowerCase().trim();
-  // verb
   if(eng.startsWith("to ")) return "verb";
-  // multiple meanings — check first
   const first = eng.split("/")[0].trim();
   if(first.startsWith("to ")) return "verb";
-  // adverb
   if(KNOWN_ADVERBS.has(eng)||KNOWN_ADVERBS.has(first)) return "adverb";
-  // conjunction/particle
   if(KNOWN_CONJUNCTIONS.has(eng)||KNOWN_CONJUNCTIONS.has(first)) return "other";
-  // pronoun
   if(KNOWN_PRONOUNS.has(eng)||KNOWN_PRONOUNS.has(first)) return "other";
-  // adjective
   if(KNOWN_ADJECTIVES.has(eng)||KNOWN_ADJECTIVES.has(first)) return "adjective";
-  // ends in -ly usually adverb
   if(eng.endsWith("ly")||first.endsWith("ly")) return "adverb";
-  // default noun
   return "noun";
 }
 
 const TYPE_COLORS = { noun:"#2563eb", verb:"#e85d9b", adjective:"#f59e0b", adverb:"#16a34a", other:"#888" };
 const TYPE_LABELS = { noun:"Noun", verb:"Verb", adjective:"Adjective", adverb:"Adverb", other:"Other" };
+
 function getStreak(){
   const today=new Date().toDateString();
   const last=localStorage.getItem("dutch-streak-date");
@@ -209,7 +203,6 @@ function updateStreak(){
   localStorage.setItem("dutch-streak-date",today);
 }
 
-// ── TIME STUDIED ───────────────────────────────────────────────────────────
 function addStudyTime(ms){
   const today=new Date().toDateString();
   const last=localStorage.getItem("dutch-time-date");
@@ -225,7 +218,6 @@ function formatTime(ms){
   return `${m}m`;
 }
 
-// ── ACCURACY PER WORD ──────────────────────────────────────────────────────
 function recordAccuracy(wordId, correct){
   const key=`dutch-acc-${wordId}`;
   const data=JSON.parse(localStorage.getItem(key)||'{"c":0,"t":0}');
@@ -237,7 +229,6 @@ function getAccuracy(wordId){
   return data.t===0?null:Math.round(data.c/data.t*100);
 }
 
-// ── UPCOMING REVIEWS ───────────────────────────────────────────────────────
 function getUpcomingReviews(){
   const now=Date.now();
   const hours=[];
@@ -266,11 +257,11 @@ function getDailyForecast(){
     const label=d===0?"Today":d===1?"Tomorrow":date.toLocaleDateString("en-US",{weekday:"short"});
     days.push({label,count});
   }
-  // running total
   let running=dueReviews().length;
   days.forEach(d=>{ running+=d.count; d.total=running; });
   return days;
 }
+
 function initProgress(){
   VOCAB.forEach(w=>{if(!progress[w.id]) progress[w.id]={stage:0,nextReview:Date.now(),lessonDone:false};});
 }
@@ -278,7 +269,9 @@ function wordsForLevel(lvl){ return VOCAB.slice((lvl-1)*WORDS_PER_LEVEL, lvl*WOR
 function guruCount(lvl){ return wordsForLevel(lvl).filter(w=>progress[w.id]?.lessonDone&&progress[w.id]?.stage>=4).length; }
 function levelProgress(lvl){ const w=wordsForLevel(lvl); return w.length?guruCount(lvl)/w.length:0; }
 function checkLevelUp(){
-  if(levelProgress(currentLevel)>=GURU_THRESHOLD&&currentLevel<60&&wordsForLevel(currentLevel+1).length>0){
+  if(currentLevel>=MAX_LEVEL) return false;
+  if(wordsForLevel(currentLevel+1).length===0) return false;
+  if(levelProgress(currentLevel)>=GURU_THRESHOLD){
     currentLevel++; save(); return true;
   }
   return false;
@@ -306,6 +299,10 @@ function similar(a,b){
 function stageColor(w){ const p=progress[w.id]; if(!p?.lessonDone) return "#333"; return STAGE_COLORS[SRS_STAGES[p.stage]]||"#888"; }
 function stageCounts(){ const c={}; SRS_STAGES.forEach(s=>c[s]=0); VOCAB.forEach(w=>{if(progress[w.id]?.lessonDone)c[SRS_STAGES[progress[w.id].stage]]++;}); return c; }
 
+function finishSession(){
+  if(sessionStartTime){ addStudyTime(Date.now()-sessionStartTime); updateStreak(); sessionStartTime=null; }
+}
+
 function startLessons(){
   lessonQueue=availableLessons(); if(!lessonQueue.length) return;
   lessonIdx=0; lessonPhase="learn"; input=""; feedback=null;
@@ -329,14 +326,13 @@ function checkAnswer(expected){
   feedback={correct,answer:expected};
   sessionTotal++; if(correct) sessionCorrect++;
   render();
-  // after render, focus the next button so Enter advances
   setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
 }
 
 function advanceReview(){
   feedback=null; input="";
   if(reviewIdx+1<reviewQueue.length){ reviewIdx++; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); }
-  else{ const leveled=checkLevelUp(); save(); sessionDone=true; showLevelUp=leveled; render(); }
+  else{ finishSession(); const leveled=checkLevelUp(); save(); sessionDone=true; showLevelUp=leveled; render(); }
 }
 function submitReview(){
   if(feedback){ advanceReview(); return; }
@@ -369,11 +365,7 @@ function submitLesson(){
   if(feedback){ advanceLesson(); return; }
   const word=lessonQueue[lessonIdx];
   const expected=lessonPhase==="quiz-meaning"?word.english:word.dutch;
-  if(!similar(input,expected)){
-    checkAnswer(expected);
-  } else {
-    checkAnswer(expected);
-  }
+  checkAnswer(expected);
 }
 
 function navHTML(active){
@@ -419,9 +411,7 @@ function renderDashboard(app){
   const needed=Math.ceil(total*GURU_THRESHOLD);
   const streak=getStreak();
   const todayMs=parseInt(localStorage.getItem("dutch-time-date")===new Date().toDateString()?localStorage.getItem("dutch-time-today")||"0":"0");
-  const allMs=parseInt(localStorage.getItem("dutch-time-all")||"0");
 
-  // accuracy across all words
   let totalC=0,totalT=0;
   VOCAB.forEach(w=>{ const d=JSON.parse(localStorage.getItem(`dutch-acc-${w.id}`)||'{"c":0,"t":0}'); totalC+=d.c; totalT+=d.t; });
   const overallAcc=totalT>0?Math.round(totalC/totalT*100):null;
@@ -432,12 +422,10 @@ function renderDashboard(app){
     return `<div class="pill"><span class="dot" style="background:${color}"></span><span style="color:#aaa">${g}</span><span style="font-weight:500">${count}</span></div>`;
   }).join("");
 
-  // forecast chart
   const upcoming=getUpcomingReviews();
   const forecast=getDailyForecast();
   const next24=upcoming.reduce((a,b)=>a+b,0);
   const maxBar=Math.max(...upcoming,1);
-  const maxDay=Math.max(...forecast.map(d=>d.count),1);
   const now=new Date();
 
   const chartBars=upcoming.map((count,i)=>{
@@ -454,6 +442,7 @@ function renderDashboard(app){
   }).join("");
 
   const forecastRows=forecast.map((d,i)=>{
+    const maxDay=Math.max(...forecast.map(x=>x.count),1);
     const barW=d.count>0?Math.max(Math.round(d.count/maxDay*100),8):0;
     return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:0.5px solid #1a1a2e">
       <span style="font-size:13px;color:#888;width:52px;flex-shrink:0">${d.label}</span>
@@ -469,7 +458,7 @@ function renderDashboard(app){
     <h2>🇳🇱 Dutch Vocab</h2><p class="sub">Spaced repetition system</p>
 
     <div class="level-bar-wrap">
-      <div class="level-header"><span class="level-title">Level ${currentLevel}</span><span class="level-pct">${gurus}/${needed} Guru to level up</span></div>
+      <div class="level-header"><span class="level-title">Level ${currentLevel} / ${MAX_LEVEL}</span><span class="level-pct">${gurus}/${needed} Guru to level up</span></div>
       <div class="level-bar"><div class="level-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
     </div>
 
@@ -513,7 +502,6 @@ function renderBrowse(app){
     const words=wordsForLevel(lvl), unlocked=lvl<=currentLevel;
     const guruPct=Math.round(levelProgress(lvl)*100);
 
-    // group by type
     const groups={noun:[],verb:[],adjective:[],adverb:[],other:[]};
     words.forEach(w=>groups[detectType(w)].push(w));
 
@@ -548,7 +536,6 @@ function renderBrowse(app){
     </div>`;
   }
 
-  // type summary bar at top
   const typeCounts={noun:0,verb:0,adjective:0,adverb:0,other:0};
   VOCAB.forEach(w=>{ if(progress[w.id]?.lessonDone) typeCounts[detectType(w)]++; });
   const summaryHTML=Object.entries(typeCounts).map(([type,count])=>`
