@@ -1,5 +1,5 @@
 const CACHE = "dutch-vocab-v1";
-const FILES = ["/", "/index.html", "/words.json", "/manifest.json"];
+const FILES = ["/", "/index.html", "/words.json", "/manifest.json", "/benelux.png", "/icon.svg"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
