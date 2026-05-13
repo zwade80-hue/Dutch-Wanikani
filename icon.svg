@@ -1,1 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0a0a1a"/>
 
+  <!-- Glow blobs -->
+  <ellipse cx="200" cy="200" rx="160" ry="130" fill="#3b2f6a" opacity="0.5"/>
+  <ellipse cx="210" cy="320" rx="140" ry="110" fill="#1e3a5f" opacity="0.5"/>
+  <ellipse cx="310" cy="350" rx="70" ry="60" fill="#1a3d2e" opacity="0.5"/>
+
+  <!-- Netherlands -->
+  <path d="M130,100 L340,94 L355,135 L362,168 L345,205 L328,235 L290,248 L256,254 L222,250 L192,240 L165,218 L148,190 L142,158 Z"
+    fill="#3b2f6a" fill-opacity="0.7"
+    stroke="#8a5cf6" stroke-width="3" stroke-opacity="0.9"/>
+
+  <!-- Belgium -->
+  <path d="M145,268 L292,254 L315,272 L325,305 L312,335 L292,352 L256,360 L215,358 L182,345 L158,322 L152,292 Z"
+    fill="#1e3a5f" fill-opacity="0.7"
+    stroke="#0ea5e9" stroke-width="3" stroke-opacity="0.9"/>
+
+  <!-- Luxembourg -->
+  <path d="M295,330 L328,327 L335,352 L330,375 L308,378 L292,365 L289,344 Z"
+    fill="#1a3d2e" fill-opacity="0.8"
+    stroke="#16a34a" stroke-width="2.5" stroke-opacity="0.9"/>
+
+  <!-- NL text -->
+  <text x="256" y="490" font-family="system-ui, sans-serif" font-size="38" font-weight="700"
+    fill="#8a5cf6" opacity="0.9" text-anchor="middle" letter-spacing="6">NL</text>
+</svg>
