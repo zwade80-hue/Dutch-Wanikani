@@ -260,9 +260,11 @@ function getUpcomingReviews(){
   for(let i=0;i<24;i++) hours.push(0);
   VOCAB.forEach(w=>{
     const p=progress[w.id];
-    if(!p?.lessonDone||p.nextReview<=now) return;
-    const hoursFromNow=Math.floor((p.nextReview-now)/HOUR_MS);
-    if(hoursFromNow<24) hours[hoursFromNow]++;
+    if(!p?.lessonDone) return;
+    // only show reviews that are genuinely in the future (not already due)
+    if(p.nextReview<=now) return;
+    const hoursFromNow=Math.ceil((p.nextReview-now)/HOUR_MS);
+    if(hoursFromNow>0&&hoursFromNow<=24) hours[hoursFromNow-1]++;
   });
   return hours;
 }
@@ -461,14 +463,13 @@ function renderDashboard(app){
   const now=new Date();
 
   const chartBars=upcoming.map((count,i)=>{
-    const h=(now.getHours()+i)%24;
+    const h=new Date(Date.now()+(i+1)*HOUR_MS).getHours();
     const ampm=h>=12?"pm":"am";
     const label=h===0?"12am":h===12?"12pm":h>12?`${h-12}${ampm}`:`${h}${ampm}`;
     const height=count>0?Math.max(Math.round(count/maxBar*60),4):0;
-    const isNow=i===0;
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
       ${count>0?`<span style="font-size:10px;color:#888">${count}</span>`:`<span style="font-size:10px;color:transparent">0</span>`}
-      <div style="width:100%;height:${height}px;background:${isNow?"#2563eb":"#8a5cf6"};border-radius:3px 3px 0 0;min-height:${count>0?4:0}px"></div>
+      <div style="width:100%;height:${height}px;background:#8a5cf6;border-radius:3px 3px 0 0;min-height:${count>0?4:0}px"></div>
       <span style="font-size:9px;color:#555;white-space:nowrap">${label}</span>
     </div>`;
   }).join("");
