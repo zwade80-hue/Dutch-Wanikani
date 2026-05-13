@@ -250,6 +250,27 @@ function getUpcomingReviews(){
   });
   return hours;
 }
+function getDailyForecast(){
+  const now=Date.now();
+  const days=[];
+  for(let d=0;d<7;d++){
+    const start=now+d*86400000;
+    const end=start+86400000;
+    let count=0;
+    VOCAB.forEach(w=>{
+      const p=progress[w.id];
+      if(!p?.lessonDone) return;
+      if(p.nextReview>now&&p.nextReview>=start&&p.nextReview<end) count++;
+    });
+    const date=new Date(start);
+    const label=d===0?"Today":d===1?"Tomorrow":date.toLocaleDateString("en-US",{weekday:"short"});
+    days.push({label,count});
+  }
+  // running total
+  let running=dueReviews().length;
+  days.forEach(d=>{ running+=d.count; d.total=running; });
+  return days;
+}
 function initProgress(){
   VOCAB.forEach(w=>{if(!progress[w.id]) progress[w.id]={stage:0,nextReview:Date.now(),lessonDone:false};});
 }
@@ -413,8 +434,12 @@ function renderDashboard(app){
 
   // forecast chart
   const upcoming=getUpcomingReviews();
+  const forecast=getDailyForecast();
+  const next24=upcoming.reduce((a,b)=>a+b,0);
   const maxBar=Math.max(...upcoming,1);
+  const maxDay=Math.max(...forecast.map(d=>d.count),1);
   const now=new Date();
+
   const chartBars=upcoming.map((count,i)=>{
     const h=(now.getHours()+i)%24;
     const ampm=h>=12?"pm":"am";
@@ -425,6 +450,18 @@ function renderDashboard(app){
       ${count>0?`<span style="font-size:10px;color:#888">${count}</span>`:`<span style="font-size:10px;color:transparent">0</span>`}
       <div style="width:100%;height:${height}px;background:${isNow?"#2563eb":"#8a5cf6"};border-radius:3px 3px 0 0;min-height:${count>0?4:0}px"></div>
       <span style="font-size:9px;color:#555;white-space:nowrap">${label}</span>
+    </div>`;
+  }).join("");
+
+  const forecastRows=forecast.map((d,i)=>{
+    const barW=d.count>0?Math.max(Math.round(d.count/maxDay*100),8):0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:0.5px solid #1a1a2e">
+      <span style="font-size:13px;color:#888;width:52px;flex-shrink:0">${d.label}</span>
+      <div style="flex:1;background:#1a1a2e;border-radius:3px;height:18px;overflow:hidden">
+        <div style="width:${barW}%;height:100%;background:#16a34a;border-radius:3px"></div>
+      </div>
+      <span style="font-size:12px;color:#16a34a;width:36px;text-align:right;flex-shrink:0">+${d.count}</span>
+      <span style="font-size:12px;color:#888;width:32px;text-align:right;flex-shrink:0">${d.total}</span>
     </div>`;
   }).join("");
 
@@ -453,10 +490,16 @@ function renderDashboard(app){
       <button class="btn-lesson" onclick="startLessons()" ${lessons===0?"disabled":""}>Start lessons (${lessons})</button>
     </div>
 
-    <div class="card">
-      <div class="card-label">Upcoming reviews — next 24 hours</div>
-      <div style="display:flex;align-items:flex-end;gap:3px;height:80px;padding-top:16px">
-        ${chartBars}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-label">Next 24 hours · ${next24} items</div>
+        <div style="display:flex;align-items:flex-end;gap:2px;height:80px;padding-top:16px">
+          ${chartBars}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-label">7-day forecast</div>
+        <div style="margin-top:4px">${forecastRows}</div>
       </div>
     </div>
 
