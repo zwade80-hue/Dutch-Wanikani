@@ -888,16 +888,7 @@ function renderLesson(app){
     inp.focus();
     inp.addEventListener("input",e=>input=e.target.value);
     inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); submitLesson(); }});
-    if(infoPanelOpen) closeInfoPanel();
   } else {
-    const wrap=document.querySelector(".session-wrap");
-    if(wrap&&!document.getElementById("info-btn")){
-      const btn=document.createElement("button");
-      btn.id="info-btn"; btn.className="info-toggle-btn";
-      btn.innerHTML="👁 View word info";
-      btn.onclick=()=>toggleInfoPanel(word);
-      wrap.appendChild(btn);
-    }
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
   }
 }
@@ -938,16 +929,7 @@ function renderReview(app){
     inp.focus();
     inp.addEventListener("input",e=>input=e.target.value);
     inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); submitReview(); }});
-    if(infoPanelOpen) closeInfoPanel();
   } else {
-    const wrap=document.querySelector(".session-wrap");
-    if(wrap&&!document.getElementById("info-btn")){
-      const btn=document.createElement("button");
-      btn.id="info-btn"; btn.className="info-toggle-btn";
-      btn.innerHTML="👁 View word info";
-      btn.onclick=()=>toggleInfoPanel(word);
-      wrap.appendChild(btn);
-    }
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
   }
 }
@@ -1051,11 +1033,6 @@ function toggleInfoPanel(word){
     if(!infoPanelCache[word.id]) fetchWordInfo(word);
   }
   renderInfoPanel();
-  const btn=document.getElementById("info-btn");
-  if(btn){
-    btn.innerHTML=infoPanelOpen?"👁 Hide word info":"👁 View word info";
-    btn.classList.toggle("panel-open",infoPanelOpen);
-  }
 }
 
 function closeInfoPanel(){
@@ -1078,6 +1055,61 @@ function fetchWordInfo(word){
   infoPanelLoading = false;
   renderInfoPanel();
   if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
+}
+
+
+function renderInfoPanel(){
+  let el=document.getElementById("info-panel");
+  if(!el){
+    el=document.createElement("div");
+    el.id="info-panel";
+    el.className="info-panel";
+    document.body.appendChild(el);
+  }
+
+  if(!infoPanelOpen){ el.classList.remove("open"); return; }
+  el.classList.add("open");
+
+  const w=infoPanelWord;
+  const cached=infoPanelCache[w?.id];
+  const stageC=w?stageColor(w):"#888";
+
+  const tabBtn=(id,label)=>`<button class="info-panel-tab${infoPanelTab===id?" active":""}" onclick="infoPanelTab='${id}';renderInfoPanel()">${label}</button>`;
+
+  const langColors={"Germanic":"#2563eb","French":"#e85d9b","Latin":"#f59e0b","English":"#16a34a","Greek":"#8b5cf6","Arabic":"#06b6d4","Spanish":"#f97316","Dutch":"#2563eb","Other":"#6b7280"};
+  const lang=cached?.etymology||"Germanic";
+  const langColor=langColors[lang]||"#6b7280";
+
+  let body="";
+  if(!cached){
+    body=`<div class="info-content" style="color:var(--muted);padding:1rem 0">Loading…</div>`;
+  } else if(infoPanelTab==="meaning"){
+    body=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:26px;font-weight:800;color:${stageC};letter-spacing:-.02em">${w.dutch}</span>
+        ${w.article?`<span style="font-size:13px;color:var(--muted);font-weight:500">${w.article}</span>`:""}
+        <span style="background:${langColor}22;color:${langColor};font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;margin-left:auto">${lang}</span>
+      </div>
+      <div class="info-content">${cached.meaning}</div>`;
+  } else {
+    body=`
+      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:var(--muted)">Example sentence</div>
+      <div class="info-content">${cached.context}</div>`;
+  }
+
+  const syns=w?getSynonyms(w.id):[];
+  const synLine=syns.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)">Your synonyms: ${syns.map(s=>`<span style="background:#ffffff0f;border-radius:4px;padding:1px 6px">${s}</span>`).join(" ")}</div>`:"";
+
+  el.innerHTML=`
+    <div class="info-panel-tabs">
+      ${tabBtn("meaning","✦ Meaning")}
+      ${tabBtn("context","💬 Context")}
+      <button class="info-panel-tab" onclick="closeInfoPanel()" style="flex:0;padding:13px 16px;font-size:18px;line-height:1">×</button>
+    </div>
+    <div class="info-panel-body">
+      ${body}
+      ${synLine}
+    </div>`;
 }
 
 async function init(){
