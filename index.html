@@ -129,6 +129,37 @@
     .browse-card.locked{background:#0e0e26;border-color:#ffffff06;opacity:.3;cursor:default}
     .browse-card.locked:hover{transform:none;box-shadow:none}
 
+
+    /* ── INFO PANEL ── */
+    .info-panel{
+      position:fixed;bottom:0;left:0;right:0;z-index:200;
+      background:#0e0e26;border-top:1px solid var(--border2);
+      border-radius:20px 20px 0 0;
+      box-shadow:0 -8px 40px #00000080;
+      max-height:75vh;overflow-y:auto;
+      transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+    }
+    .info-panel.open{transform:translateY(0)}
+    .info-panel-tabs{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;background:#0e0e26;z-index:1;border-radius:20px 20px 0 0;overflow:hidden}
+    .info-panel-tab{flex:1;padding:13px 8px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;border-radius:0;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.01em}
+    .info-panel-tab.active{color:var(--text);border-bottom-color:var(--purple-bright)}
+    .info-panel-tab:hover{color:var(--text);background:#ffffff05}
+    .info-panel-body{padding:1.25rem 1.5rem 2rem}
+    .info-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+    .info-content{font-size:14px;line-height:1.7;color:#c4c4d8}
+    .info-content b{color:var(--text);font-weight:600}
+    .info-pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;margin-right:6px;margin-bottom:4px}
+    .info-toggle-btn{
+      display:flex;align-items:center;justify-content:center;gap:6px;
+      width:100%;margin-top:10px;padding:11px;
+      background:#ffffff07;border:1px solid var(--border);
+      border-radius:10px;color:var(--muted);font-size:13px;font-weight:600;
+      cursor:pointer;transition:all .15s;
+    }
+    .info-toggle-btn:hover{background:#ffffff0f;color:var(--text)}
+    .info-toggle-btn.panel-open{color:var(--purple-bright);border-color:var(--purple-bright)44;background:var(--purple-glow)}
+    .loading-dots::after{content:'...';animation:dots 1.2s steps(4,end) infinite}
+    @keyframes dots{0%,20%{content:'.'}40%{content:'..'}60%,100%{content:'...'}}
     /* MODAL */
     .modal-bg{position:fixed;inset:0;background:#00000090;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;animation:fadein .14s}
     @keyframes fadein{from{opacity:0}to{opacity:1}}
@@ -366,13 +397,43 @@ function dueReviews(){
   return due;
 }
 function normalize(s){ return s.trim().toLowerCase().replace(/[^a-z ]/g,""); }
+function getAcceptedAnswers(english){
+  // Split on "/" and also on "b)" "2)" style separators, strip parenthetical junk
+  let raw = english.replace(/[a-z0-9]\)\s*/gi," / ").replace(/\s+/g," ");
+  return raw.split("/").map(x=>normalize(x)).filter(x=>x.length>0);
+}
 function similar(a,b){
-  a=normalize(a); b=normalize(b);
-  if(a===b) return true;
-  if(b.split("/").map(x=>x.trim()).some(x=>a===x)) return true;
-  if(Math.abs(a.length-b.length)>2) return false;
-  let d=0; for(let i=0;i<Math.max(a.length,b.length);i++) if(a[i]!==b[i]) d++;
-  return d<=1;
+  a=normalize(a);
+  // check against all accepted forms of b
+  const accepted=getAcceptedAnswers(b);
+  if(accepted.some(x=>x===a)) return true;
+  // fuzzy match against each accepted form (1 typo tolerance)
+  return accepted.some(x=>{
+    if(Math.abs(a.length-x.length)>2) return false;
+    let d=0; for(let i=0;i<Math.max(a.length,x.length);i++) if(a[i]!==x[i]) d++;
+    return d<=1;
+  });
+}
+
+// ── USER SYNONYMS ──────────────────────────────────────────────────────────
+function getSynonyms(wordId){
+  return JSON.parse(localStorage.getItem(`dutch-syn-${wordId}`)||"[]");
+}
+function addSynonym(wordId, syn){
+  syn=syn.trim().toLowerCase();
+  if(!syn) return;
+  const syns=getSynonyms(wordId);
+  if(!syns.includes(syn)){ syns.push(syn); localStorage.setItem(`dutch-syn-${wordId}`,JSON.stringify(syns)); }
+}
+function removeSynonym(wordId, syn){
+  const syns=getSynonyms(wordId).filter(s=>s!==syn);
+  localStorage.setItem(`dutch-syn-${wordId}`,JSON.stringify(syns));
+}
+function similarWithSynonyms(a, b, wordId){
+  if(similar(a,b)) return true;
+  const syns=getSynonyms(wordId);
+  const an=normalize(a);
+  return syns.some(s=>s===an);
 }
 function stageColor(w){ const p=progress[w.id]; if(!p?.lessonDone) return "#333"; return STAGE_COLORS[SRS_STAGES[p.stage]]||"#888"; }
 function stageCounts(){ const c={}; SRS_STAGES.forEach(s=>c[s]=0); VOCAB.forEach(w=>{if(progress[w.id]?.lessonDone)c[SRS_STAGES[progress[w.id].stage]]++;}); return c; }
@@ -417,7 +478,7 @@ function submitReview(){
   const{word,type}=reviewQueue[reviewIdx];
   const expected=type==="meaning"?word.english:word.dutch;
   const cur=progress[word.id];
-  const correct=similar(input,expected);
+  const correct=type==="meaning"?similarWithSynonyms(input,expected,word.id):similar(input,expected);
   const newStage=correct?Math.min(cur.stage+1,SRS_STAGES.length-1):Math.max(cur.stage-1,0);
   progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
   recordAccuracy(word.id,correct);
@@ -443,7 +504,14 @@ function submitLesson(){
   if(feedback){ advanceLesson(); return; }
   const word=lessonQueue[lessonIdx];
   const expected=lessonPhase==="quiz-meaning"?word.english:word.dutch;
-  checkAnswer(expected);
+  if(lessonPhase==="quiz-meaning"){
+    feedback={correct:similarWithSynonyms(input,expected,word.id),answer:expected};
+  } else {
+    feedback={correct:similar(input,expected),answer:expected};
+  }
+  sessionTotal++; if(feedback.correct) sessionCorrect++;
+  render();
+  setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
 }
 
 function navHTML(active){
@@ -642,6 +710,12 @@ function renderModal(){
   const acc=getAccuracy(w.id);
   const type=detectType(w);
   const typeColor=TYPE_COLORS[type];
+  const syns=getSynonyms(w.id);
+  const synHTML=syns.map(s=>`
+    <span style="display:inline-flex;align-items:center;gap:4px;background:#1e1e3f;border:1px solid var(--border2);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:500;margin:2px">
+      ${s}
+      <button onclick="removeSynonym(${w.id},'${s}');selectedWord=VOCAB.find(x=>x.id===${w.id});render()" style="background:none;border:none;color:var(--muted);padding:0;font-size:14px;line-height:1;cursor:pointer;margin-left:2px">×</button>
+    </span>`).join("");
   return `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
     <div style="text-align:center;margin-bottom:8px">
       <span style="background:${typeColor}22;color:${typeColor};font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px">${TYPE_LABELS[type]}</span>
@@ -649,10 +723,21 @@ function renderModal(){
     <div class="modal-word" style="color:${color}">${w.dutch}</div>
     ${w.article?`<div class="modal-article">${w.article} ${w.dutch}</div>`:""}
     <div class="modal-english">${w.english}</div>
-    <div class="modal-row"><span style="color:#888">SRS stage</span><span style="color:${color};font-weight:500">${stage}</span></div>
-    <div class="modal-row"><span style="color:#888">Next review</span><span>${next}</span></div>
-    <div class="modal-row"><span style="color:#888">Accuracy</span><span>${acc!==null?acc+"%":"—"}</span></div>
-    <div class="modal-row"><span style="color:#888">Article</span><span>${w.article||"—"}</span></div>
+    <div class="modal-row"><span>SRS stage</span><span style="color:${color};font-weight:600">${stage}</span></div>
+    <div class="modal-row"><span>Next review</span><span>${next}</span></div>
+    <div class="modal-row"><span>Accuracy</span><span>${acc!==null?acc+"%":"—"}</span></div>
+    <div class="modal-row"><span>Article</span><span>${w.article||"—"}</span></div>
+    <div style="margin-top:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">My synonyms</div>
+      <div style="margin-bottom:8px;min-height:24px">${synHTML||'<span style="font-size:12px;color:var(--muted)">None added yet</span>'}</div>
+      <div style="display:flex;gap:6px">
+        <input id="syn-input" type="text" placeholder="Add synonym…"
+          style="flex:1;padding:8px 10px;font-size:13px;border-radius:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);outline:none;font-family:inherit;font-weight:500"
+          onkeydown="if(event.key==='Enter'){addSynonym(${w.id},this.value);this.value='';selectedWord=VOCAB.find(x=>x.id===${w.id});render()}"/>
+        <button onclick="addSynonym(${w.id},document.getElementById('syn-input').value);document.getElementById('syn-input').value='';selectedWord=VOCAB.find(x=>x.id===${w.id});render()"
+          style="padding:8px 14px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">Add</button>
+      </div>
+    </div>
     <button class="modal-close btn-secondary" onclick="closeModal()">Close</button>
   </div></div>`;
 }
@@ -807,6 +892,129 @@ function closeEnoughBtn(type){
   </button>`;
 }
 
+
+// ── INFO PANEL ─────────────────────────────────────────────────────────────
+let infoPanelOpen = false;
+let infoPanelTab = "meaning"; // meaning | context
+let infoPanelWord = null;
+let infoPanelCache = {}; // wordId -> {meaning, context}
+let infoPanelLoading = false;
+
+function toggleInfoPanel(word){
+  if(infoPanelOpen && infoPanelWord?.id===word.id){
+    infoPanelOpen=false;
+  } else {
+    infoPanelOpen=true;
+    infoPanelWord=word;
+    infoPanelTab="meaning";
+    if(!infoPanelCache[word.id]) fetchWordInfo(word);
+  }
+  renderInfoPanel();
+}
+
+function closeInfoPanel(){
+  infoPanelOpen=false;
+  renderInfoPanel();
+}
+
+async function fetchWordInfo(word){
+  infoPanelLoading=true;
+  renderInfoPanel();
+  try{
+    const prompt=`For the Dutch word "${word.dutch}" (meaning: "${word.english}"${word.article?" article: "+word.article:""}), provide:
+
+1. MEANING: A clear explanation of the word. Include:
+   - Word type (noun/verb/adjective/adverb/etc)
+   - If noun: the article (de/het) and why (if there's a pattern)
+   - Etymology: what language it originates from (Germanic, French, Latin, English, etc) and the root word if interesting
+   - Any important nuances or usage notes
+   - 1-2 common collocations or phrases
+
+2. CONTEXT: 3 short example sentences in Dutch with English translations. Make them practical and natural.
+
+Format your response as JSON exactly like this:
+{"meaning":"<html string with <b> tags for emphasis>","etymology":"<language origin, e.g. Germanic, French, Latin>","context":"<html string with example sentences using <br> between them, Dutch in <b>bold</b> followed by English in normal text>"}
+
+Only output the JSON, nothing else.`;
+
+    const resp = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.find(b=>b.type==="text")?.text||"{}";
+    const clean = text.replace(/```json|```/g,"").trim();
+    infoPanelCache[word.id] = JSON.parse(clean);
+  } catch(e){
+    infoPanelCache[word.id] = {
+      meaning:`Could not load info for <b>${word.dutch}</b>.`,
+      etymology:"Unknown",
+      context:"Could not load examples."
+    };
+  }
+  infoPanelLoading=false;
+  renderInfoPanel();
+}
+
+function renderInfoPanel(){
+  let el=document.getElementById("info-panel");
+  if(!el){
+    el=document.createElement("div");
+    el.id="info-panel";
+    el.className="info-panel";
+    document.body.appendChild(el);
+  }
+
+  if(!infoPanelOpen){ el.classList.remove("open"); return; }
+  el.classList.add("open");
+
+  const w=infoPanelWord;
+  const cached=infoPanelCache[w?.id];
+  const stageC=w?stageColor(w):"#888";
+
+  const tabBtn=(id,label)=>`<button class="info-panel-tab${infoPanelTab===id?" active":""}" onclick="infoPanelTab='${id}';renderInfoPanel()">${label}</button>`;
+
+  let body="";
+  if(infoPanelLoading||!cached){
+    body=`<div class="info-content" style="color:var(--muted);padding:1rem 0">
+      <span class="loading-dots">Loading</span>
+    </div>`;
+  } else if(infoPanelTab==="meaning"){
+    const langColors={"Germanic":"#2563eb","French":"#e85d9b","Latin":"#f59e0b","English":"#16a34a","Greek":"#8b5cf6","Arabic":"#06b6d4","Spanish":"#f97316","Dutch":"#2563eb","Unknown":"#6b7280"};
+    const lang=cached.etymology||"Unknown";
+    const langColor=langColors[lang]||"#6b7280";
+    body=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:28px;font-weight:800;color:${stageC};letter-spacing:-.02em">${w.dutch}</span>
+        ${w.article?`<span style="font-size:13px;color:var(--muted);font-weight:500">${w.article}</span>`:""}
+        <span class="info-pill" style="background:${langColor}22;color:${langColor};margin-left:auto">${lang}</span>
+      </div>
+      <div class="info-content">${cached.meaning}</div>`;
+  } else {
+    body=`
+      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:var(--muted)">Example sentences</div>
+      <div class="info-content">${cached.context}</div>`;
+  }
+
+  const syns=w?getSynonyms(w.id):[];
+  const synLine=syns.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)">Your synonyms: ${syns.map(s=>`<span style="background:#ffffff0f;border-radius:4px;padding:1px 6px">${s}</span>`).join(" ")}</div>`:"";
+
+  el.innerHTML=`
+    <div class="info-panel-tabs">
+      ${tabBtn("meaning","✦ Meaning")}
+      ${tabBtn("context","💬 Context")}
+      <button class="info-panel-tab" onclick="closeInfoPanel()" style="flex:0;padding:13px 16px;font-size:18px">×</button>
+    </div>
+    <div class="info-panel-body">
+      ${body}
+      ${synLine}
+    </div>`;
+}
 async function init(){
   try{ const r=await fetch("words.json"); VOCAB=await r.json(); }catch(e){ VOCAB=[]; }
   load(); initProgress(); render();
