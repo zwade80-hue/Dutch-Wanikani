@@ -160,6 +160,18 @@
     .info-toggle-btn.panel-open{color:var(--purple-bright);border-color:var(--purple-bright)44;background:var(--purple-glow)}
     .loading-dots::after{content:'...';animation:dots 1.2s steps(4,end) infinite}
     @keyframes dots{0%,20%{content:'.'}40%{content:'..'}60%,100%{content:'...'}}
+
+    /* ── LESSON PICKER ── */
+    .picker-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1rem}
+    .picker-word{
+      padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;
+      cursor:pointer;border:1.5px solid transparent;
+      background:#1a1a3a;color:var(--muted);
+      transition:all .14s;letter-spacing:-.01em;user-select:none;
+    }
+    .picker-word:hover{border-color:var(--border2);color:var(--text)}
+    .picker-word.selected{background:var(--purple-glow);border-color:var(--purple-bright);color:var(--purple-bright)}
+    .picker-word.selected:hover{background:#7c3aed44}
     /* MODAL */
     .modal-bg{position:fixed;inset:0;background:#00000090;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;animation:fadein .14s}
     @keyframes fadein{from{opacity:0}to{opacity:1}}
@@ -549,6 +561,7 @@ function render(){
   else if(screen==="lesson") renderLesson(app);
   else if(screen==="review") renderReview(app);
   else if(screen==="settings") renderSettings(app);
+  else if(screen==="picker") renderPicker(app);
 }
 
 function renderDashboard(app){
@@ -624,6 +637,11 @@ function renderDashboard(app){
     <div class="btn-row">
       <button class="btn-review" onclick="startReviews()" ${due===0?"disabled":""}>Start reviews (${due})</button>
       <button class="btn-lesson" onclick="startLessons()" ${lessons===0?"disabled":""}>Start lessons (${lessons})</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:-8px;margin-bottom:1rem">
+      <button onclick="openLessonPicker()" style="background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;padding:4px 0;cursor:pointer;display:flex;align-items:center;gap:4px">
+        <span style="font-size:14px">⚡</span> Lesson Picker
+      </button>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
@@ -1015,6 +1033,82 @@ function renderInfoPanel(){
       ${synLine}
     </div>`;
 }
+
+// ── LESSON PICKER ──────────────────────────────────────────────────────────
+let pickerSelected = new Set();
+
+function openLessonPicker(){
+  pickerSelected = new Set();
+  screen = "picker";
+  render();
+}
+
+function togglePickerWord(id){
+  if(pickerSelected.has(id)) pickerSelected.delete(id);
+  else pickerSelected.add(id);
+  render();
+}
+
+function selectAllPicker(){
+  const unlearned = wordsForLevel(currentLevel).filter(w=>!progress[w.id]?.lessonDone);
+  unlearned.forEach(w=>pickerSelected.add(w.id));
+  render();
+}
+
+function startPickerLessons(){
+  if(!pickerSelected.size) return;
+  const words = VOCAB.filter(w=>pickerSelected.has(w.id));
+  lessonQueue = words;
+  lessonIdx=0; lessonPhase="learn"; input=""; feedback=null;
+  sessionCorrect=0; sessionTotal=0; sessionDone=false; showLevelUp=false;
+  sessionStartTime=Date.now();
+  screen="lesson"; render();
+}
+
+function renderPicker(app){
+  const unlearned = wordsForLevel(currentLevel).filter(w=>!progress[w.id]?.lessonDone);
+  const learned   = wordsForLevel(currentLevel).filter(w=>progress[w.id]?.lessonDone);
+  const sel = pickerSelected.size;
+
+  const wordBtn = (w) => {
+    const isSel = pickerSelected.has(w.id);
+    return `<div class="picker-word${isSel?" selected":""}" onclick="togglePickerWord(${w.id})">${w.dutch}</div>`;
+  };
+
+  app.innerHTML=`${navHTML("dashboard")}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
+    </div>
+    <h2 style="margin-bottom:3px">Lesson Picker</h2>
+    <p class="sub">Select words to study, then start your custom batch.</p>
+
+    ${unlearned.length ? `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-label" style="margin-bottom:0">Level ${currentLevel} — Not yet learned (${unlearned.length})</div>
+        <button onclick="selectAllPicker()" style="background:none;border:none;color:var(--purple-bright);font-size:12px;font-weight:600;padding:0;cursor:pointer">Select all</button>
+      </div>
+      <div class="picker-grid">
+        ${unlearned.map(wordBtn).join("")}
+      </div>
+    </div>` : `<div class="card"><p style="color:var(--muted);font-size:14px">All words in this level have been learned! Level up first.</p></div>`}
+
+    ${learned.length ? `
+    <div class="card">
+      <div class="card-label">Already learned (${learned.length})</div>
+      <div class="picker-grid">
+        ${learned.map(w=>`<div class="picker-word" style="opacity:.35;cursor:default" title="Already in SRS">${w.dutch}</div>`).join("")}
+      </div>
+    </div>` : ""}
+
+    <div style="position:sticky;bottom:1rem">
+      <button class="btn-lesson" style="width:100%;${sel===0?"opacity:.35;cursor:not-allowed":""}"
+        onclick="startPickerLessons()" ${sel===0?"disabled":""}>
+        Start ${sel>0?sel+" selected word"+(sel>1?"s":""):"— select words above"}
+      </button>
+    </div>`;
+}
+
 async function init(){
   try{ const r=await fetch("words.json"); VOCAB=await r.json(); }catch(e){ VOCAB=[]; }
   load(); initProgress(); render();
