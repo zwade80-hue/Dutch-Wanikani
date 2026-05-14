@@ -990,6 +990,17 @@ function renderSettings(app){
     </div>
 
     <div class="card">
+      <div class="card-label">Anthropic API Key</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Required for word meanings, examples, and etymology. Get one free at <b>console.anthropic.com</b>. Stored only in your browser.</p>
+      <div style="display:flex;gap:8px">
+        <input id="api-key-input" type="password" placeholder="sk-ant-..." value="${getApiKey()}"
+          style="flex:1;padding:9px 12px;font-size:13px;border-radius:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);outline:none;font-family:inherit;font-weight:500"/>
+        <button onclick="const v=document.getElementById('api-key-input').value.trim();localStorage.setItem('dutch-api-key',v);alert(v?'API key saved!':'API key cleared.')"
+          style="padding:9px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700">Save</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-label">Progress</div>
       <button class="btn-secondary" style="background:#1a1a2e;color:#f87171;border-color:#7f1d1d;margin-top:0"
         onclick="if(confirm('Reset ALL progress? This cannot be undone.')){localStorage.clear();progress={};currentLevel=1;initProgress();screen='dashboard';render()}">
@@ -1040,49 +1051,78 @@ function closeInfoPanel(){
   renderInfoPanel();
 }
 
+// Store your Anthropic API key in localStorage for the deployed app
+function getApiKey(){
+  return localStorage.getItem("dutch-api-key")||"";
+}
+
 async function fetchWordInfo(word){
+  const apiKey = getApiKey();
+  if(!apiKey){
+    infoPanelCache[word.id] = {
+      meaning:`<span style="color:#f59e0b">⚠ No API key set.</span> Go to <b>Settings → API Key</b> and paste your Anthropic API key to enable word info.`,
+      etymology:"Unknown",
+      context:`<span style="color:var(--muted)">Add your API key in Settings to see examples.</span>`
+    };
+    infoPanelLoading=false;
+    renderInfoPanel();
+    if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
+    return;
+  }
+
   infoPanelLoading=true;
   renderInfoPanel();
+  if(screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id) render();
+
   try{
-    const prompt=`For the Dutch word "${word.dutch}" (meaning: "${word.english}"${word.article?" article: "+word.article:""}), provide:
+    const prompt = `For the Dutch word "${word.dutch}" (meaning: "${word.english}"${word.article?" article: "+word.article:""}), provide:
 
 1. MEANING: A clear explanation of the word. Include:
    - Word type (noun/verb/adjective/adverb/etc)
-   - If noun: the article (de/het) and why (if there's a pattern)
-   - Etymology: what language it originates from (Germanic, French, Latin, English, etc) and the root word if interesting
+   - If noun: the article (de/het) and any pattern if notable
+   - Etymology: what language it originates from (Germanic, French, Latin, English, etc)
    - Any important nuances or usage notes
    - 1-2 common collocations or phrases
 
 2. CONTEXT: 3 short example sentences in Dutch with English translations. Make them practical and natural.
 
-Format your response as JSON exactly like this:
-{"meaning":"<html string with <b> tags for emphasis>","etymology":"<language origin, e.g. Germanic, French, Latin>","context":"<html string with example sentences using <br> between them, Dutch in <b>bold</b> followed by English in normal text>"}
-
-Only output the JSON, nothing else.`;
+Respond with ONLY valid JSON in this exact format:
+{"meaning":"explanation with <b>bold</b> for key terms","etymology":"Germanic","context":"<b>Dutch sentence 1.</b> English translation 1.<br><br><b>Dutch sentence 2.</b> English translation 2.<br><br><b>Dutch sentence 3.</b> English translation 3."}`;
 
     const resp = await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key": apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
+        model:"claude-haiku-4-5-20251001",
+        max_tokens:800,
         messages:[{role:"user",content:prompt}]
       })
     });
+
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(err?.error?.message||`HTTP ${resp.status}`);
+    }
+
     const data = await resp.json();
     const text = data.content?.find(b=>b.type==="text")?.text||"{}";
-    const clean = text.replace(/```json|```/g,"").trim();
+    const clean = text.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m=>m.replace(/```json|```/g,"")).trim();
     infoPanelCache[word.id] = JSON.parse(clean);
   } catch(e){
+    console.error("fetchWordInfo error:", e);
     infoPanelCache[word.id] = {
-      meaning:`Could not load info for <b>${word.dutch}</b>.`,
+      meaning:`<span style="color:#f87171">Error: ${e.message}</span> — <a href="#" onclick="delete infoPanelCache[${word.id}];fetchWordInfo(VOCAB.find(w=>w.id===${word.id}))" style="color:var(--purple-bright)">retry</a>`,
       etymology:"Unknown",
-      context:"Could not load examples."
+      context:`<span style="color:#f87171">Could not load examples.</span> — <a href="#" onclick="delete infoPanelCache[${word.id}];fetchWordInfo(VOCAB.find(w=>w.id===${word.id}))" style="color:var(--purple-bright)">retry</a>`
     };
   }
   infoPanelLoading=false;
   renderInfoPanel();
-  // if browse modal or lesson learn phase is open for this word, re-render
   if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
 }
 
