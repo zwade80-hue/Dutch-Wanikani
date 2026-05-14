@@ -734,9 +734,17 @@ function renderModal(){
       ${s}
       <button onclick="removeSynonym(${w.id},'${s}');selectedWord=VOCAB.find(x=>x.id===${w.id});render()" style="background:none;border:none;color:var(--muted);padding:0;font-size:14px;line-height:1;cursor:pointer;margin-left:2px">×</button>
     </span>`).join("");
-  return `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
-    <div style="text-align:center;margin-bottom:8px">
+  // trigger info fetch if not cached
+  if(!infoPanelCache[w.id]) fetchWordInfo(w);
+  const cached=infoPanelCache[w.id];
+  const langColors={"Germanic":"#2563eb","French":"#e85d9b","Latin":"#f59e0b","English":"#16a34a","Greek":"#8b5cf6","Arabic":"#06b6d4","Spanish":"#f97316","Dutch":"#2563eb","Unknown":"#6b7280"};
+  const lang=cached?.etymology||null;
+  const langColor=lang?langColors[lang]||"#6b7280":null;
+
+  return `<div class="modal-bg" onclick="closeModal();closeInfoPanel()"><div class="modal" onclick="event.stopPropagation()">
+    <div style="text-align:center;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
       <span style="background:${typeColor}22;color:${typeColor};font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px">${TYPE_LABELS[type]}</span>
+      ${lang?`<span style="background:${langColor}22;color:${langColor};font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px">${lang}</span>`:`<span style="font-size:11px;color:var(--muted)">loading origin…</span>`}
     </div>
     <div class="modal-word" style="color:${color}">${w.dutch}</div>
     ${w.article?`<div class="modal-article">${w.article} ${w.dutch}</div>`:""}
@@ -745,6 +753,20 @@ function renderModal(){
     <div class="modal-row"><span>Next review</span><span>${next}</span></div>
     <div class="modal-row"><span>Accuracy</span><span>${acc!==null?acc+"%":"—"}</span></div>
     <div class="modal-row"><span>Article</span><span>${w.article||"—"}</span></div>
+
+    ${cached?.meaning?`
+    <div style="margin-top:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Meaning</div>
+      <div style="font-size:13px;line-height:1.65;color:#c4c4d8">${cached.meaning}</div>
+    </div>`:`
+    <div style="margin-top:14px;font-size:13px;color:var(--muted)"><span class="loading-dots">Loading meaning</span></div>`}
+
+    ${cached?.context?`
+    <div style="margin-top:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Examples</div>
+      <div style="font-size:13px;line-height:1.75;color:#c4c4d8">${cached.context}</div>
+    </div>`:""}
+
     <div style="margin-top:14px">
       <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">My synonyms</div>
       <div style="margin-bottom:8px;min-height:24px">${synHTML||'<span style="font-size:12px;color:var(--muted)">None added yet</span>'}</div>
@@ -756,7 +778,7 @@ function renderModal(){
           style="padding:8px 14px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600">Add</button>
       </div>
     </div>
-    <button class="modal-close btn-secondary" onclick="closeModal()">Close</button>
+    <button class="modal-close btn-secondary" onclick="closeModal();closeInfoPanel()">Close</button>
   </div></div>`;
 }
 
@@ -977,6 +999,8 @@ Only output the JSON, nothing else.`;
   }
   infoPanelLoading=false;
   renderInfoPanel();
+  // if browse modal is open for this word, re-render it too
+  if(selectedWord?.id===word.id) render();
 }
 
 function renderInfoPanel(){
