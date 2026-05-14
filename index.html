@@ -990,17 +990,6 @@ function renderSettings(app){
     </div>
 
     <div class="card">
-      <div class="card-label">Anthropic API Key</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Required for word meanings, examples, and etymology. Get one free at <b>console.anthropic.com</b>. Stored only in your browser.</p>
-      <div style="display:flex;gap:8px">
-        <input id="api-key-input" type="password" placeholder="sk-ant-..." value="${getApiKey()}"
-          style="flex:1;padding:9px 12px;font-size:13px;border-radius:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);outline:none;font-family:inherit;font-weight:500"/>
-        <button onclick="const v=document.getElementById('api-key-input').value.trim();localStorage.setItem('dutch-api-key',v);alert(v?'API key saved!':'API key cleared.')"
-          style="padding:9px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700">Save</button>
-      </div>
-    </div>
-
-    <div class="card">
       <div class="card-label">Progress</div>
       <button class="btn-secondary" style="background:#1a1a2e;color:#f87171;border-color:#7f1d1d;margin-top:0"
         onclick="if(confirm('Reset ALL progress? This cannot be undone.')){localStorage.clear();progress={};currentLevel=1;initProgress();screen='dashboard';render()}">
@@ -1051,209 +1040,21 @@ function closeInfoPanel(){
   renderInfoPanel();
 }
 
-// Store your Anthropic API key in localStorage for the deployed app
-function getApiKey(){
-  return localStorage.getItem("dutch-api-key")||"";
-}
-
-async function fetchWordInfo(word){
-  const apiKey = getApiKey();
-  if(!apiKey){
-    infoPanelCache[word.id] = {
-      meaning:`<span style="color:#f59e0b">⚠ No API key set.</span> Go to <b>Settings → API Key</b> and paste your Anthropic API key to enable word info.`,
-      etymology:"Unknown",
-      context:`<span style="color:var(--muted)">Add your API key in Settings to see examples.</span>`
-    };
-    infoPanelLoading=false;
-    renderInfoPanel();
-    if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
-    return;
-  }
-
-  infoPanelLoading=true;
-  renderInfoPanel();
-  if(screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id) render();
-
-  try{
-    const prompt = `For the Dutch word "${word.dutch}" (meaning: "${word.english}"${word.article?" article: "+word.article:""}), provide:
-
-1. MEANING: A clear explanation of the word. Include:
-   - Word type (noun/verb/adjective/adverb/etc)
-   - If noun: the article (de/het) and any pattern if notable
-   - Etymology: what language it originates from (Germanic, French, Latin, English, etc)
-   - Any important nuances or usage notes
-   - 1-2 common collocations or phrases
-
-2. CONTEXT: 3 short example sentences in Dutch with English translations. Make them practical and natural.
-
-Respond with ONLY valid JSON in this exact format:
-{"meaning":"explanation with <b>bold</b> for key terms","etymology":"Germanic","context":"<b>Dutch sentence 1.</b> English translation 1.<br><br><b>Dutch sentence 2.</b> English translation 2.<br><br><b>Dutch sentence 3.</b> English translation 3."}`;
-
-    const resp = await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "x-api-key": apiKey,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
-      },
-      body:JSON.stringify({
-        model:"claude-haiku-4-5-20251001",
-        max_tokens:800,
-        messages:[{role:"user",content:prompt}]
-      })
-    });
-
-    if(!resp.ok){
-      const err = await resp.json().catch(()=>({}));
-      throw new Error(err?.error?.message||`HTTP ${resp.status}`);
-    }
-
-    const data = await resp.json();
-    const text = data.content?.find(b=>b.type==="text")?.text||"{}";
-    const clean = text.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m=>m.replace(/```json|```/g,"")).trim();
-    infoPanelCache[word.id] = JSON.parse(clean);
-  } catch(e){
-    console.error("fetchWordInfo error:", e);
-    infoPanelCache[word.id] = {
-      meaning:`<span style="color:#f87171">Error: ${e.message}</span> — <a href="#" onclick="delete infoPanelCache[${word.id}];fetchWordInfo(VOCAB.find(w=>w.id===${word.id}))" style="color:var(--purple-bright)">retry</a>`,
-      etymology:"Unknown",
-      context:`<span style="color:#f87171">Could not load examples.</span> — <a href="#" onclick="delete infoPanelCache[${word.id}];fetchWordInfo(VOCAB.find(w=>w.id===${word.id}))" style="color:var(--purple-bright)">retry</a>`
-    };
-  }
-  infoPanelLoading=false;
+// ── WORD INFO (static, baked into words.json) ─────────────────────────────
+function fetchWordInfo(word){
+  // Data is already in the word object from words.json
+  const langColors={"Germanic":"#2563eb","French":"#e85d9b","Latin":"#f59e0b","English":"#16a34a","Greek":"#8b5cf6","Arabic":"#06b6d4","Spanish":"#f97316","Dutch":"#2563eb","Other":"#6b7280"};
+  const lang = word.etymology || "Germanic";
+  infoPanelCache[word.id] = {
+    etymology: lang,
+    meaning: word.meaning || `<b>${word.dutch}</b> means "${word.english}".`,
+    context: word.example_nl
+      ? `<b>${word.example_nl}</b><br>${word.example_en}`
+      : `No example available.`
+  };
+  infoPanelLoading = false;
   renderInfoPanel();
   if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
-}
-
-function renderInfoPanel(){
-  let el=document.getElementById("info-panel");
-  if(!el){
-    el=document.createElement("div");
-    el.id="info-panel";
-    el.className="info-panel";
-    document.body.appendChild(el);
-  }
-
-  if(!infoPanelOpen){ el.classList.remove("open"); return; }
-  el.classList.add("open");
-
-  const w=infoPanelWord;
-  const cached=infoPanelCache[w?.id];
-  const stageC=w?stageColor(w):"#888";
-
-  const tabBtn=(id,label)=>`<button class="info-panel-tab${infoPanelTab===id?" active":""}" onclick="infoPanelTab='${id}';renderInfoPanel()">${label}</button>`;
-
-  let body="";
-  if(infoPanelLoading||!cached){
-    body=`<div class="info-content" style="color:var(--muted);padding:1rem 0">
-      <span class="loading-dots">Loading</span>
-    </div>`;
-  } else if(infoPanelTab==="meaning"){
-    const langColors={"Germanic":"#2563eb","French":"#e85d9b","Latin":"#f59e0b","English":"#16a34a","Greek":"#8b5cf6","Arabic":"#06b6d4","Spanish":"#f97316","Dutch":"#2563eb","Unknown":"#6b7280"};
-    const lang=cached.etymology||"Unknown";
-    const langColor=langColors[lang]||"#6b7280";
-    body=`
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <span style="font-size:28px;font-weight:800;color:${stageC};letter-spacing:-.02em">${w.dutch}</span>
-        ${w.article?`<span style="font-size:13px;color:var(--muted);font-weight:500">${w.article}</span>`:""}
-        <span class="info-pill" style="background:${langColor}22;color:${langColor};margin-left:auto">${lang}</span>
-      </div>
-      <div class="info-content">${cached.meaning}</div>`;
-  } else {
-    body=`
-      <div style="margin-bottom:10px;font-size:13px;font-weight:600;color:var(--muted)">Example sentences</div>
-      <div class="info-content">${cached.context}</div>`;
-  }
-
-  const syns=w?getSynonyms(w.id):[];
-  const synLine=syns.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)">Your synonyms: ${syns.map(s=>`<span style="background:#ffffff0f;border-radius:4px;padding:1px 6px">${s}</span>`).join(" ")}</div>`:"";
-
-  el.innerHTML=`
-    <div class="info-panel-tabs">
-      ${tabBtn("meaning","✦ Meaning")}
-      ${tabBtn("context","💬 Context")}
-      <button class="info-panel-tab" onclick="closeInfoPanel()" style="flex:0;padding:13px 16px;font-size:18px">×</button>
-    </div>
-    <div class="info-panel-body">
-      ${body}
-      ${synLine}
-    </div>`;
-}
-
-// ── LESSON PICKER ──────────────────────────────────────────────────────────
-let pickerSelected = new Set();
-
-function openLessonPicker(){
-  pickerSelected = new Set();
-  screen = "picker";
-  render();
-}
-
-function togglePickerWord(id){
-  if(pickerSelected.has(id)) pickerSelected.delete(id);
-  else pickerSelected.add(id);
-  render();
-}
-
-function selectAllPicker(){
-  const unlearned = wordsForLevel(currentLevel).filter(w=>!progress[w.id]?.lessonDone);
-  unlearned.forEach(w=>pickerSelected.add(w.id));
-  render();
-}
-
-function startPickerLessons(){
-  if(!pickerSelected.size) return;
-  const words = VOCAB.filter(w=>pickerSelected.has(w.id));
-  lessonQueue = words;
-  lessonIdx=0; lessonPhase="learn"; input=""; feedback=null;
-  sessionCorrect=0; sessionTotal=0; sessionDone=false; showLevelUp=false;
-  sessionStartTime=Date.now();
-  screen="lesson"; render();
-}
-
-function renderPicker(app){
-  const unlearned = wordsForLevel(currentLevel).filter(w=>!progress[w.id]?.lessonDone);
-  const learned   = wordsForLevel(currentLevel).filter(w=>progress[w.id]?.lessonDone);
-  const sel = pickerSelected.size;
-
-  const wordBtn = (w) => {
-    const isSel = pickerSelected.has(w.id);
-    return `<div class="picker-word${isSel?" selected":""}" onclick="togglePickerWord(${w.id})">${w.dutch}</div>`;
-  };
-
-  app.innerHTML=`${navHTML("dashboard")}
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
-    </div>
-    <h2 style="margin-bottom:3px">Lesson Picker</h2>
-    <p class="sub">Select words to study, then start your custom batch.</p>
-
-    ${unlearned.length ? `
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div class="card-label" style="margin-bottom:0">Level ${currentLevel} — Not yet learned (${unlearned.length})</div>
-        <button onclick="selectAllPicker()" style="background:none;border:none;color:var(--purple-bright);font-size:12px;font-weight:600;padding:0;cursor:pointer">Select all</button>
-      </div>
-      <div class="picker-grid">
-        ${unlearned.map(wordBtn).join("")}
-      </div>
-    </div>` : `<div class="card"><p style="color:var(--muted);font-size:14px">All words in this level have been learned! Level up first.</p></div>`}
-
-    ${learned.length ? `
-    <div class="card">
-      <div class="card-label">Already learned (${learned.length})</div>
-      <div class="picker-grid">
-        ${learned.map(w=>`<div class="picker-word" style="opacity:.35;cursor:default" title="Already in SRS">${w.dutch}</div>`).join("")}
-      </div>
-    </div>` : ""}
-
-    <div style="position:sticky;bottom:1rem">
-      <button class="btn-lesson" style="width:100%;${sel===0?"opacity:.35;cursor:not-allowed":""}"
-        onclick="startPickerLessons()" ${sel===0?"disabled":""}>
-        Start ${sel>0?sel+" selected word"+(sel>1?"s":""):"— select words above"}
-      </button>
-    </div>`;
 }
 
 async function init(){
