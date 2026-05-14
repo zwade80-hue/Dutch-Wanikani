@@ -190,6 +190,23 @@
   </style>
 </head>
 <body>
+
+<div style="position:fixed;top:20px;left:24px;z-index:50;width:72px;height:48px;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px #00000060;opacity:0.9">
+  <!-- Netherlands: left half (3 horizontal stripes: red, white, blue) -->
+  <div style="position:absolute;left:0;top:0;width:50%;height:100%;display:flex;flex-direction:column">
+    <div style="flex:1;background:#AE1C28"></div>
+    <div style="flex:1;background:#FFFFFF"></div>
+    <div style="flex:1;background:#21468B"></div>
+  </div>
+  <!-- Belgium: right half (3 vertical stripes: black, yellow, red) -->
+  <div style="position:absolute;right:0;top:0;width:50%;height:100%;display:flex;flex-direction:row">
+    <div style="flex:1;background:#000000"></div>
+    <div style="flex:1;background:#FAE042"></div>
+    <div style="flex:1;background:#EF3340"></div>
+  </div>
+  <!-- thin divider line down the middle -->
+  <div style="position:absolute;left:50%;top:0;width:1.5px;height:100%;background:#ffffff22;transform:translateX(-50%)"></div>
+</div>
 <div id="app"><p style="text-align:center;padding:3rem;color:#888">Loading...</p></div>
 <script>
 const SRS_STAGES   = ["Apprentice 1","Apprentice 2","Apprentice 3","Apprentice 4","Guru 1","Guru 2","Master","Enlightened","Burned"];
