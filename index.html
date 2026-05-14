@@ -881,6 +881,7 @@ function renderLesson(app){
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}" ${feedback?"disabled":""}/>
       ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}</div>${closeEnoughBtn(lessonPhase==="quiz-meaning"?"meaning":"dutch")}`:""}
       <button id="next-btn" class="check-btn" style="background:${btnColor}" onclick="submitLesson()">${feedback?nextLabel:"Check →"}</button>
+      ${infoBtnHTML(word.id)}
     </div>
   </div>`;
   if(!feedback){
@@ -888,6 +889,7 @@ function renderLesson(app){
     inp.focus();
     inp.addEventListener("input",e=>input=e.target.value);
     inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); submitLesson(); }});
+    if(infoPanelOpen) closeInfoPanel();
   } else {
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
   }
@@ -923,12 +925,14 @@ function renderReview(app){
       <span>✗ ${sessionTotal-sessionCorrect}</span>
       <span>${sessionTotal>0?Math.round(sessionCorrect/sessionTotal*100):0}%</span>
     </div>
+    ${infoBtnHTML(word.id)}
   </div>`;
   if(!feedback){
     const inp=document.getElementById("answer-input");
     inp.focus();
     inp.addEventListener("input",e=>input=e.target.value);
     inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); submitReview(); }});
+    if(infoPanelOpen) closeInfoPanel();
   } else {
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
   }
@@ -1033,6 +1037,9 @@ function toggleInfoPanel(word){
     if(!infoPanelCache[word.id]) fetchWordInfo(word);
   }
   renderInfoPanel();
+  const app=document.getElementById("app");
+  if(screen==="review") renderReview(app);
+  else if(screen==="lesson") renderLesson(app);
 }
 
 function closeInfoPanel(){
@@ -1057,6 +1064,12 @@ function fetchWordInfo(word){
   if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
 }
 
+
+function infoBtnHTML(wordId){
+  if(!feedback) return "";
+  const open = infoPanelOpen && infoPanelWord?.id===wordId;
+  return '<button class="info-toggle-btn'+(open?' panel-open':'')+'" onclick="toggleInfoPanel(VOCAB.find(w=>w.id==='+wordId+'))">'+(open?'👁 Hide word info':'👁 View word info')+'</button>';
+}
 
 function renderInfoPanel(){
   let el=document.getElementById("info-panel");
