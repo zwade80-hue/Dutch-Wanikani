@@ -202,6 +202,8 @@ let settings = {
   lessonsPerDay: 15,
   reviewOrder: "shuffle",   // "shuffle" | "level" | "stage"
   lightMode: false,
+  autoPlay: true,
+  slowAudio: false,
 };
 function loadSettings(){
   const s=localStorage.getItem("dutch-settings");
@@ -447,6 +449,26 @@ function similarWithSynonyms(a, b, wordId){
   const an=normalize(a);
   return syns.some(s=>s===an);
 }
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────
+function speak(text, lang="nl-NL"){
+  if(!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  u.rate = settings.slowAudio ? 0.6 : 0.9;
+  // try to find a Dutch voice
+  const voices = speechSynthesis.getVoices();
+  const dutch = voices.find(v=>v.lang==="nl-NL")||voices.find(v=>v.lang.startsWith("nl"));
+  if(dutch) u.voice = dutch;
+  speechSynthesis.speak(u);
+}
+function speakBtn(text, lang="nl-NL", size="15px"){
+  return `<button onclick="event.stopPropagation();speak('${text.replace(/'/g,"\'")}','${lang}')"
+    style="background:none;border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--muted);font-size:${size};cursor:pointer;transition:all .14s;line-height:1"
+    title="Play audio">🔊</button>`;
+}
+
 function stageColor(w){ const p=progress[w.id]; if(!p?.lessonDone) return "#333"; return STAGE_COLORS[SRS_STAGES[p.stage]]||"#888"; }
 function stageCounts(){ const c={}; SRS_STAGES.forEach(s=>c[s]=0); VOCAB.forEach(w=>{if(progress[w.id]?.lessonDone)c[SRS_STAGES[progress[w.id].stage]]++;}); return c; }
 
@@ -785,18 +807,56 @@ function renderModal(){
 function renderLesson(app){
   const word=lessonQueue[lessonIdx];
   if(lessonPhase==="learn"){
+    // auto-play Dutch word
+    if(settings.autoPlay) setTimeout(()=>speak(word.dutch),200);
+    // start fetching info
+    if(!infoPanelCache[word.id]) fetchWordInfo(word);
+    const cached=infoPanelCache[word.id];
+    const langColors={"Germanic":"#2563eb","French":"#e85d9b","Latin":"#f59e0b","English":"#16a34a","Greek":"#8b5cf6","Arabic":"#06b6d4","Spanish":"#f97316","Dutch":"#2563eb","Unknown":"#6b7280"};
+    const lang=cached?.etymology||null;
+    const langColor=lang?langColors[lang]||"#6b7280":"#6b7280";
+
     app.innerHTML=`<div class="session-wrap">
       <div class="session-header">
         <button class="btn-back" onclick="screen='dashboard';render()">← back</button>
-        <span style="font-size:13px;color:#888">${lessonIdx+1} / ${lessonQueue.length}</span>
+        <span style="font-size:13px;color:var(--muted);font-weight:500">${lessonIdx+1} / ${lessonQueue.length}</span>
       </div>
+      <div class="session-progress"><div class="session-progress-fill" style="width:${Math.round(lessonIdx/lessonQueue.length*100)}%"></div></div>
       <div style="text-align:center">
-        <div class="direction-label">Lesson</div>
-        <div class="big-word">${word.dutch}</div>
-        ${word.article?`<div style="color:#888;font-size:16px;margin-bottom:4px">${word.article} ${word.dutch}</div>`:""}
-        <div style="font-size:24px;color:#888;margin:1rem 0 2rem">${word.english}</div>
-        <button id="next-btn" class="check-btn" style="background:#8a5cf6" onclick="advanceLesson()">I know this →</button>
+        <div class="direction-label">Lesson — Learn</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:1rem 0 .25rem">
+          <div class="big-word" style="margin:0">${word.dutch}</div>
+          ${speakBtn(word.dutch)}
+        </div>
+        ${word.article?`<div style="color:var(--muted);font-size:14px;margin-bottom:4px;font-weight:500">${word.article} ${word.dutch}</div>`:""}
+        <div style="font-size:22px;color:#9ca3af;margin:.75rem 0;font-weight:600">${word.english}</div>
+        ${lang?`<div style="margin-bottom:1rem"><span style="background:${langColor}22;color:${langColor};font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${lang}</span></div>`:`<div style="margin-bottom:1rem;font-size:11px;color:var(--muted)">loading origin…</div>`}
       </div>
+
+      <div style="margin-bottom:1.25rem">
+        ${cached?.meaning?`
+        <div class="card" style="margin-bottom:.6rem;text-align:left">
+          <div class="card-label">Meaning</div>
+          <div style="font-size:13px;line-height:1.65;color:#c4c4d8">${cached.meaning}</div>
+        </div>`:` 
+        <div class="card" style="margin-bottom:.6rem;color:var(--muted);font-size:13px">
+          <span class="loading-dots">Loading meaning</span>
+        </div>`}
+
+        ${cached?.context?`
+        <div class="card" style="text-align:left">
+          <div class="card-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Examples</span>
+            ${speakBtn(cached.context.replace(/<[^>]+>/g,"").split("\n")[0]||word.dutch,"nl-NL","13px")}
+          </div>
+          <div style="font-size:13px;line-height:1.75;color:#c4c4d8">${cached.context}</div>
+        </div>`:`
+        <div class="card" style="color:var(--muted);font-size:13px">
+          <span class="loading-dots">Loading examples</span>
+        </div>`}
+      </div>
+
+      <button id="next-btn" class="check-btn" style="background:#7c3aed" onclick="advanceLesson()">Got it →</button>
     </div>`;
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
     return;
@@ -849,7 +909,10 @@ function renderReview(app){
     <div class="session-progress"><div class="session-progress-fill" style="width:${Math.round(reviewIdx/reviewQueue.length*100)}%"></div></div>
     <div style="text-align:center">
       <div class="direction-label">${type==="meaning"?"🇳🇱 Dutch → English":"🇬🇧 English → Dutch"}</div>
-      <div class="big-word">${prompt}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:.75rem 0 .25rem">
+        <div class="big-word" style="margin:0">${prompt}</div>
+        ${type==="meaning"?speakBtn(word.dutch):""}
+      </div>
       <div class="prompt-label">${label}</div>
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""}/>
       ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<br><small>Article: ${word.article}</small>`:""}</div>${closeEnoughBtn(type)}`:""}
@@ -899,10 +962,30 @@ function renderSettings(app){
 
     <div class="card">
       <div class="card-label">Appearance</div>
-      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0">
         <span style="font-size:14px">Light mode</span>
         <input type="checkbox" ${settings.lightMode?"checked":""} style="width:18px;height:18px;accent-color:#8a5cf6"
           onchange="settings.lightMode=this.checked;saveSettings();render()"/>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Audio</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:14px">Auto-play pronunciation</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Plays Dutch word automatically on lesson cards</div>
+        </div>
+        <input type="checkbox" ${settings.autoPlay?"checked":""} style="width:18px;height:18px;accent-color:#8a5cf6;flex-shrink:0;margin-left:12px"
+          onchange="settings.autoPlay=this.checked;saveSettings()"/>
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 0 4px">
+        <div>
+          <div style="font-size:14px">Slow audio</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Speaks at 60% speed — good for learning pronunciation</div>
+        </div>
+        <input type="checkbox" ${settings.slowAudio?"checked":""} style="width:18px;height:18px;accent-color:#8a5cf6;flex-shrink:0;margin-left:12px"
+          onchange="settings.slowAudio=this.checked;saveSettings()"/>
       </label>
     </div>
 
@@ -999,8 +1082,8 @@ Only output the JSON, nothing else.`;
   }
   infoPanelLoading=false;
   renderInfoPanel();
-  // if browse modal is open for this word, re-render it too
-  if(selectedWord?.id===word.id) render();
+  // if browse modal or lesson learn phase is open for this word, re-render
+  if(selectedWord?.id===word.id || (screen==="lesson"&&lessonPhase==="learn"&&lessonQueue[lessonIdx]?.id===word.id)) render();
 }
 
 function renderInfoPanel(){
