@@ -881,6 +881,10 @@ function renderLesson(app){
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}" ${feedback?"disabled":""}/>
       ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}</div>${closeEnoughBtn(lessonPhase==="quiz-meaning"?"meaning":"dutch")}`:""}
       <button id="next-btn" class="check-btn" style="background:${btnColor}" onclick="submitLesson()">${feedback?nextLabel:"Check →"}</button>
+      ${feedback?`<button class="info-toggle-btn${infoPanelOpen&&infoPanelWord?.id===word.id?" panel-open":""}"
+        onclick="toggleInfoPanel(VOCAB.find(w=>w.id===${word.id}))">
+        👁 ${infoPanelOpen&&infoPanelWord?.id===word.id?"Hide word info":"View word info"}
+      </button>`:""}
     </div>
   </div>`;
   if(!feedback){
@@ -888,6 +892,7 @@ function renderLesson(app){
     inp.focus();
     inp.addEventListener("input",e=>input=e.target.value);
     inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); submitLesson(); }});
+    if(infoPanelOpen) closeInfoPanel();
   } else {
     setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
   }
