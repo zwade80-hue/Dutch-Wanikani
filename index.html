@@ -633,12 +633,18 @@ function renderDashboard(app){
   const chartBars=upcoming.map((count,i)=>{
     const h=new Date(Date.now()+(i+1)*HOUR_MS).getHours();
     const ampm=h>=12?"pm":"am";
-    const label=h===0?"12am":h===12?"12pm":h>12?`${h-12}${ampm}`:`${h}${ampm}`;
-    const height=count>0?Math.max(Math.round(count/maxBar*60),4):0;
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0">
-      ${count>0?`<span style="font-size:10px;color:#888">${count}</span>`:`<span style="font-size:10px;color:transparent">0</span>`}
-      <div style="width:100%;height:${height}px;background:#8a5cf6;border-radius:3px 3px 0 0;min-height:${count>0?4:0}px"></div>
-      <span style="font-size:9px;color:#555;white-space:nowrap">${label}</span>
+    const rawLabel=h===0?"12am":h===12?"12pm":h>12?`${h-12}${ampm}`:`${h}${ampm}`;
+    // only show label every 3 hours to avoid clutter
+    const showLabel=(i===0)||(h%3===0);
+    const label=showLabel?rawLabel:"";
+    const height=count>0?Math.max(Math.round(count/maxBar*70),6):0;
+    const hasCount=count>0;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0">
+      <span style="font-size:10px;font-weight:600;color:var(--purple-bright);min-height:14px">${hasCount?count:""}</span>
+      <div style="width:100%;display:flex;align-items:flex-end;flex:1">
+        <div style="width:100%;height:${height}px;background:${hasCount?"linear-gradient(180deg,#a78bfa,#7c3aed)":"transparent"};border-radius:4px 4px 0 0;transition:height .3s"></div>
+      </div>
+      <span style="font-size:9px;color:${showLabel?"var(--muted)":"transparent"};white-space:nowrap;font-weight:500">${label||"·"}</span>
     </div>`;
   }).join("");
 
@@ -688,7 +694,7 @@ function renderDashboard(app){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
       <div class="card" style="margin-bottom:0">
         <div class="card-label">Next 24 hours · ${next24} items</div>
-        <div style="display:flex;align-items:flex-end;gap:2px;height:80px;padding-top:16px">
+        <div style="display:flex;align-items:stretch;gap:2px;height:100px;padding-top:4px">
           ${chartBars}
         </div>
       </div>
