@@ -2,7 +2,7 @@
   {
     "id": 1,
     "dutch": "en",
-    "english": "and",
+    "english": "and (connector)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Coordinating conjunction connecting words or clauses. One of the most fundamental words in Dutch.",
@@ -12,7 +12,7 @@
   {
     "id": 2,
     "dutch": "in",
-    "english": "in",
+    "english": "in (location/time)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition indicating location inside something, or time within a period. Very versatile.",
@@ -22,7 +22,7 @@
   {
     "id": 3,
     "dutch": "van",
-    "english": "of",
+    "english": "of (possession/origin)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Indicates origin, possession, or material. One of the most common Dutch prepositions.",
@@ -32,7 +32,7 @@
   {
     "id": 4,
     "dutch": "op",
-    "english": "on",
+    "english": "on / at (surface)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition for surface contact or specific locations. Also used for days of the week.",
@@ -52,7 +52,7 @@
   {
     "id": 6,
     "dutch": "het",
-    "english": "the 2) it",
+    "english": "the (neuter) / it",
     "article": null,
     "etymology": "Germanic",
     "meaning": "The neuter definite article in Dutch. Used with <b>het</b>-words (neuter nouns). Also means 'it'.",
@@ -82,7 +82,7 @@
   {
     "id": 9,
     "dutch": "met",
-    "english": "with",
+    "english": "with (accompaniment)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition indicating accompaniment, instrument, or manner.",
@@ -92,7 +92,7 @@
   {
     "id": 10,
     "dutch": "te",
-    "english": "to",
+    "english": "to (infinitive marker)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Infinitive marker before verbs, or a preposition meaning 'at/in' for cities. Also means 'too' (excessively).",
@@ -122,7 +122,7 @@
   {
     "id": 13,
     "dutch": "aan",
-    "english": "to",
+    "english": "on / to (attached/on)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Versatile preposition: attached to a surface, switched on, or part of many phrasal verbs.",
@@ -132,7 +132,7 @@
   {
     "id": 14,
     "dutch": "ook",
-    "english": "also",
+    "english": "also / too (addition)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Adverb meaning additionally or likewise. Often placed after the subject or at the end of a clause.",
@@ -142,7 +142,7 @@
   {
     "id": 15,
     "dutch": "er",
-    "english": "there",
+    "english": "there / it (expletive)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Highly versatile Dutch word used as a location adverb, expletive subject, or combined with prepositions.",
@@ -152,7 +152,7 @@
   {
     "id": 16,
     "dutch": "als",
-    "english": "when",
+    "english": "when / as / if (conjunction)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Conjunction with multiple uses: temporal (when), comparative (as), or conditional (if).",
@@ -182,7 +182,7 @@
   {
     "id": 19,
     "dutch": "dat",
-    "english": "that",
+    "english": "that (conjunction/pronoun)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Conjunction introducing subordinate clauses, or a demonstrative pronoun for <b>het</b>-words.",
@@ -192,7 +192,7 @@
   {
     "id": 20,
     "dutch": "om",
-    "english": "(a)round",
+    "english": "around / at (time)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition for circular motion, purpose (om te + infinitive), or indicating clock time.",
@@ -212,7 +212,7 @@
   {
     "id": 22,
     "dutch": "nog",
-    "english": "still",
+    "english": "still / yet (continuation)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Indicates continuation of a state, or used in questions/negatives meaning 'yet'.",
@@ -222,7 +222,7 @@
   {
     "id": 23,
     "dutch": "maar",
-    "english": "but",
+    "english": "but (contrast)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Coordinating conjunction expressing contrast or contradiction. Also means 'just/only' in informal speech.",
@@ -232,7 +232,7 @@
   {
     "id": 24,
     "dutch": "bij",
-    "english": "near (to)",
+    "english": "near / at (someone's place)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition indicating proximity, presence at someone's place, or association.",
@@ -242,7 +242,7 @@
   {
     "id": 25,
     "dutch": "zij",
-    "english": "she b) they",
+    "english": "she / they (formal plural)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Third person pronoun, both singular feminine and plural. The formal written plural of <b>ze</b>.",
@@ -252,7 +252,7 @@
   {
     "id": 26,
     "dutch": "naar",
-    "english": "to",
+    "english": "to / towards (direction)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition expressing direction or movement towards a destination.",
@@ -262,7 +262,7 @@
   {
     "id": 27,
     "dutch": "uit",
-    "english": "from",
+    "english": "out of / from (exit)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition expressing origin or exit from an enclosed space. Also used in many compound verbs.",
@@ -292,7 +292,7 @@
   {
     "id": 30,
     "dutch": "zullen",
-    "english": "will",
+    "english": "will / shall (future)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Modal verb forming the future tense or making polite requests. Ik zal, jij zult/zal, hij zal.",
@@ -302,7 +302,7 @@
   {
     "id": 31,
     "dutch": "of",
-    "english": "or",
+    "english": "or / whether",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Coordinating conjunction presenting alternatives, or subordinating conjunction meaning 'whether'.",
@@ -332,7 +332,7 @@
   {
     "id": 34,
     "dutch": "door",
-    "english": "through",
+    "english": "through / by (agent)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition of motion through a space, or indicating the agent in a passive sentence.",
@@ -342,7 +342,7 @@
   {
     "id": 35,
     "dutch": "al",
-    "english": "already",
+    "english": "already (sooner than expected)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Adverb indicating something has happened sooner than expected, or an adjective meaning 'all'.",
@@ -352,7 +352,7 @@
   {
     "id": 36,
     "dutch": "geen",
-    "english": "no",
+    "english": "no / not any (negation)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Negative article or determiner. Used instead of <b>niet een</b> to negate nouns.",
@@ -362,7 +362,7 @@
   {
     "id": 37,
     "dutch": "dan",
-    "english": "then",
+    "english": "then / than",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Conjunction used in comparisons (than) or indicating sequence in time (then).",
@@ -382,7 +382,7 @@
   {
     "id": 39,
     "dutch": "wel",
-    "english": "~ rather",
+    "english": "well / indeed (nuance)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Nuance word adding emphasis or contrast. Hard to translate directly — often softens or affirms a statement.",
@@ -402,7 +402,7 @@
   {
     "id": 41,
     "dutch": "tot",
-    "english": "to",
+    "english": "until / up to",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition indicating a limit in time or space. <b>Tot ziens!</b> means 'Goodbye!' (lit. until seeing).",
@@ -412,7 +412,7 @@
   {
     "id": 42,
     "dutch": "hij",
-    "english": "he",
+    "english": "he (masculine)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Third person singular masculine pronoun. Informal: <b>ie</b> in spoken Dutch.",
@@ -422,7 +422,7 @@
   {
     "id": 43,
     "dutch": "wat",
-    "english": "what",
+    "english": "what / something",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Interrogative pronoun (what?), relative pronoun, or indefinite pronoun meaning 'something'.",
@@ -432,7 +432,7 @@
   {
     "id": 44,
     "dutch": "zo",
-    "english": "so",
+    "english": "so / like this",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Adverb of manner or degree. <b>Zo groot</b> means 'this big'. Also used as a filler in speech.",
@@ -442,7 +442,7 @@
   {
     "id": 45,
     "dutch": "nu",
-    "english": "now",
+    "english": "now (present moment)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Temporal adverb indicating the present moment. <b>Nu meteen</b> means 'right now'.",
@@ -462,7 +462,7 @@
   {
     "id": 47,
     "dutch": "ander",
-    "english": "other",
+    "english": "other / different",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Adjective meaning another or a different one. Plural: <b>andere</b>.",
@@ -482,7 +482,7 @@
   {
     "id": 49,
     "dutch": "dit",
-    "english": "this",
+    "english": "this (neuter noun)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Demonstrative pronoun for <b>het</b>-words (neuter) nearby. For <b>de</b>-words use <b>deze</b>.",
@@ -492,7 +492,7 @@
   {
     "id": 50,
     "dutch": "willen",
-    "english": "to want",
+    "english": "to want / to wish",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Modal verb expressing desire or wish. Ik wil, jij wilt/wil, hij wil, wij willen.",
@@ -552,7 +552,7 @@
   {
     "id": 56,
     "dutch": "wij",
-    "english": "we",
+    "english": "we (formal)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "First person plural pronoun, formal form of <b>we</b>. Both are correct; <b>we</b> is more common in speech.",
@@ -562,7 +562,7 @@
   {
     "id": 57,
     "dutch": "groot",
-    "english": "big",
+    "english": "big / large (size)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Common adjective for size. Comparative: <b>groter</b>, superlative: <b>grootst</b>. Opposite: <b>klein</b>.",
@@ -572,7 +572,7 @@
   {
     "id": 58,
     "dutch": "na",
-    "english": "after",
+    "english": "after / behind (time)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition for time (after an event) or position (behind). Also: <b>nadat</b> = after (conjunction).",
@@ -592,7 +592,7 @@
   {
     "id": 60,
     "dutch": "ik",
-    "english": "I",
+    "english": "I (first person)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "First person singular subject pronoun. Always lowercase in Dutch, unlike English.",
@@ -612,7 +612,7 @@
   {
     "id": 62,
     "dutch": "deze",
-    "english": "this, these",
+    "english": "this / these (de-word)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Demonstrative for <b>de</b>-words nearby (singular and plural). For <b>het</b>-words use <b>dit</b>.",
@@ -622,7 +622,7 @@
   {
     "id": 63,
     "dutch": "daar",
-    "english": "there",
+    "english": "there (away from speaker)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Location adverb indicating a place away from the speaker. Opposite: <b>hier</b> (here).",
@@ -632,7 +632,7 @@
   {
     "id": 64,
     "dutch": "jij",
-    "english": "you",
+    "english": "you (informal singular)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Second person singular pronoun (informal). Stressed form of <b>je</b>. Formal: <b>u</b>.",
@@ -642,7 +642,7 @@
   {
     "id": 65,
     "dutch": "laten",
-    "english": "to let",
+    "english": "to let / to have done",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Causative verb: to allow or to have someone do something. <b>Laat me zien</b> = let me see.",
@@ -662,7 +662,7 @@
   {
     "id": 67,
     "dutch": "twee",
-    "english": "two",
+    "english": "two (number)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "The number 2. Ordinal: <b>tweede</b> (second).",
@@ -672,7 +672,7 @@
   {
     "id": 68,
     "dutch": "heel",
-    "english": "whole",
+    "english": "very / whole",
     "article": null,
     "etymology": "Germanic",
     "meaning": "As an adverb: very, quite. As an adjective: whole, entire. <b>heel Nederland</b> = all of the Netherlands.",
@@ -702,7 +702,7 @@
   {
     "id": 71,
     "dutch": "waar",
-    "english": "where",
+    "english": "where (location question)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Interrogative adverb for location (where?). As an adjective it means true/genuine.",
@@ -712,7 +712,7 @@
   {
     "id": 72,
     "dutch": "toch",
-    "english": "yet",
+    "english": "yet / still (nuance particle)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "A nuance particle with no direct English equivalent. Adds emphasis, contradiction, or seeking confirmation.",
@@ -722,7 +722,7 @@
   {
     "id": 73,
     "dutch": "ons",
-    "english": "us b) our",
+    "english": "us / our (het-word)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Object form of <b>wij</b> (us), or possessive pronoun for <b>het</b>-words (our). For <b>de</b>-words: <b>onze</b>.",
@@ -732,7 +732,7 @@
   {
     "id": 74,
     "dutch": "onder",
-    "english": "under",
+    "english": "under / below",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Preposition for physical position below something, or figuratively (under pressure, among).",
@@ -772,7 +772,7 @@
   {
     "id": 78,
     "dutch": "omdat",
-    "english": "because",
+    "english": "because (reason)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Subordinating conjunction introducing a reason clause. Verb goes to the end: <b>omdat ik moe ben</b>.",
@@ -782,7 +782,7 @@
   {
     "id": 79,
     "dutch": "alleen",
-    "english": "alone",
+    "english": "alone / only",
     "article": null,
     "etymology": "Germanic",
     "meaning": "As an adjective: alone, by oneself. As an adverb: only, merely. <b>Niet alleen... maar ook</b> = not only... but also.",
@@ -812,7 +812,7 @@
   {
     "id": 82,
     "dutch": "nieuw",
-    "english": "new",
+    "english": "new (recently made)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Adjective for something recently made or acquired. Opposite: <b>oud</b> (old).",
@@ -832,7 +832,7 @@
   {
     "id": 84,
     "dutch": "weer",
-    "english": "weather",
+    "english": "weather (noun)",
     "article": "het",
     "etymology": "Germanic",
     "meaning": "Dutch Germanic noun meaning weather. Uses the article <b>het</b>. Common in everyday usage.",
@@ -842,7 +842,7 @@
   {
     "id": 85,
     "dutch": "tijd",
-    "english": "time",
+    "english": "time (general)",
     "article": "de",
     "etymology": "Germanic",
     "meaning": "Dutch Germanic noun meaning time. Uses the article <b>de</b>. Common in everyday usage.",
@@ -852,7 +852,7 @@
   {
     "id": 86,
     "dutch": "lang",
-    "english": "long, tall",
+    "english": "long / tall",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch word meaning <b>long, tall</b>. Frequently used in both spoken and written Dutch.",
@@ -862,7 +862,7 @@
   {
     "id": 87,
     "dutch": "af",
-    "english": "off",
+    "english": "off / away (detached)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch word meaning <b>off</b>. Frequently used in both spoken and written Dutch.",
@@ -872,7 +872,7 @@
   {
     "id": 88,
     "dutch": "liggen",
-    "english": "to lie",
+    "english": "to lie (horizontal position)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch verb meaning to lie. Used in everyday speech.",
@@ -882,7 +882,7 @@
   {
     "id": 89,
     "dutch": "dus",
-    "english": "so",
+    "english": "so / therefore",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch word meaning <b>so</b>. Frequently used in both spoken and written Dutch.",
@@ -902,7 +902,7 @@
   {
     "id": 91,
     "dutch": "drie",
-    "english": "three",
+    "english": "three (number)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch word meaning <b>three</b>. Frequently used in both spoken and written Dutch.",
