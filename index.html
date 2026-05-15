@@ -708,15 +708,51 @@ function renderDashboard(app){
 }
 
 function renderBrowse(app){
+  const q = browseSearch.trim().toLowerCase();
   const maxLevel=Math.ceil(VOCAB.length/WORDS_PER_LEVEL);
+
+  // Search mode — flat results across all words
+  if(q){
+    const results = VOCAB.filter(w=>
+      w.dutch.toLowerCase().includes(q) ||
+      w.english.toLowerCase().includes(q)
+    );
+    const cards = results.map(w=>{
+      const unlocked = Math.ceil(w.id/WORDS_PER_LEVEL)<=currentLevel;
+      const wcolor = stageColor(w);
+      const lvl = Math.ceil(w.id/WORDS_PER_LEVEL);
+      return `<div class="browse-card${!unlocked?" locked":""}" style="${unlocked?"background:"+wcolor+"22;border-color:"+wcolor+"44":""}" onclick="${unlocked?"openWord("+w.id+")":""}">
+        <div style="font-size:9px;color:var(--muted);font-weight:600;margin-bottom:3px">LVL ${lvl}</div>
+        <div class="dutch" style="color:${unlocked?wcolor:"#444"}">${w.dutch}</div>
+        <div class="english">${unlocked?w.english:"???"}</div>
+      </div>`;
+    }).join("");
+
+    app.innerHTML=`${navHTML("browse")}
+      <h2 style="margin-bottom:1rem">Browse</h2>
+      <div style="position:relative;margin-bottom:1.5rem">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px">🔍</span>
+        <input id="browse-search" type="text" value="${q.replace(/"/g,'&quot;')}" placeholder="Search Dutch or English…"
+          style="width:100%;padding:13px 16px 13px 42px;font-size:15px;border-radius:12px;background:var(--surface);color:var(--text);border:1.5px solid var(--purple-bright);outline:none;font-family:inherit;font-weight:500"
+          oninput="browseSearch=this.value;renderBrowse(document.getElementById('app'))"/>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">${results.length} result${results.length!==1?"s":""} for "<b style="color:var(--text)">${q}</b>"</p>
+      ${results.length?`<div class="browse-grid">${cards}</div>`:`<div style="text-align:center;padding:3rem;color:var(--muted)">No words found</div>`}
+      ${selectedWord?renderModal():""}`;
+
+    // keep focus + cursor at end
+    const inp=document.getElementById("browse-search");
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); }
+    return;
+  }
+
+  // Normal mode
   let html="";
   for(let lvl=1;lvl<=maxLevel;lvl++){
     const words=wordsForLevel(lvl), unlocked=lvl<=currentLevel;
     const guruPct=Math.round(levelProgress(lvl)*100);
-
     const groups={noun:[],verb:[],adjective:[],adverb:[],other:[]};
     words.forEach(w=>groups[detectType(w)].push(w));
-
     let groupsHTML="";
     for(const [type,ws] of Object.entries(groups)){
       if(!ws.length) continue;
@@ -728,16 +764,14 @@ function renderBrowse(app){
           <div class="english">${locked?"???":w.english}</div>
         </div>`;
       }).join("");
-      groupsHTML+=`
-        <div style="margin-bottom:1rem">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="background:${color}22;color:${color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px">${TYPE_LABELS[type]}</span>
-            <span style="font-size:12px;color:#555">${ws.length} words</span>
-          </div>
-          <div class="browse-grid">${cards}</div>
-        </div>`;
+      groupsHTML+=`<div style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:${color}22;color:${color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px">${TYPE_LABELS[type]}</span>
+          <span style="font-size:12px;color:var(--muted)">${ws.length} words</span>
+        </div>
+        <div class="browse-grid">${cards}</div>
+      </div>`;
     }
-
     html+=`<div class="browse-level-section">
       <div class="browse-level-header">
         <span class="browse-level-badge">Level ${lvl}</span>
@@ -757,8 +791,15 @@ function renderBrowse(app){
     </div>`).join("");
 
   app.innerHTML=`${navHTML("browse")}
-    <h2 style="margin-bottom:1rem">All words</h2>
-    <div style="display:flex;justify-content:space-around;background:#0f0f1fee;border:0.5px solid #2a2a4a;border-radius:12px;padding:1rem;margin-bottom:1.5rem">
+    <h2 style="margin-bottom:1rem">Browse</h2>
+    <div style="position:relative;margin-bottom:1.5rem">
+      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px">🔍</span>
+      <input id="browse-search" type="text" placeholder="Search Dutch or English…"
+        style="width:100%;padding:13px 16px 13px 42px;font-size:15px;border-radius:12px;background:var(--surface);color:var(--text);border:1.5px solid var(--border2);outline:none;font-family:inherit;font-weight:500;transition:border-color .15s"
+        onfocus="this.style.borderColor='var(--purple-bright)'" onblur="this.style.borderColor='var(--border2)'"
+        oninput="browseSearch=this.value;renderBrowse(document.getElementById('app'))"/>
+    </div>
+    <div style="display:flex;justify-content:space-around;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:1.5rem">
       ${summaryHTML}
     </div>
     ${html}
@@ -1153,6 +1194,7 @@ function renderInfoPanel(){
 
 // ── LESSON PICKER ──────────────────────────────────────────────────────────
 let pickerSelected = new Set();
+let browseSearch = "";
 
 function openLessonPicker(){
   pickerSelected = new Set();
