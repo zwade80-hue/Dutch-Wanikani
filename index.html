@@ -133,6 +133,26 @@
     .browse-card.locked:hover{transform:none;box-shadow:none}
 
 
+
+    /* ── STAGE UP POPUP ── */
+    .stage-popup{
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);
+      z-index:300;pointer-events:none;
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      opacity:0;transition:all .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .stage-popup.show{opacity:1;transform:translate(-50%,-60%) scale(1)}
+    .stage-popup.hide{opacity:0;transform:translate(-50%,-70%) scale(0.9);transition:all .3s ease}
+    .stage-popup-badge{
+      padding:10px 24px;border-radius:99px;
+      font-size:18px;font-weight:800;letter-spacing:.02em;
+      box-shadow:0 8px 32px #00000060;
+      white-space:nowrap;
+    }
+    .stage-popup-label{
+      font-size:12px;font-weight:700;color:#fff;
+      text-transform:uppercase;letter-spacing:.1em;opacity:.8;
+    }
     /* ── INFO PANEL ── */
     .info-panel{
       position:fixed;bottom:0;left:0;right:0;z-index:200;
@@ -534,6 +554,58 @@ function isNearMiss(input, expected){
 
 let nearMissActive = false; // track if we're in a near-miss state
 
+
+// ── STAGE UP POPUP ─────────────────────────────────────────────────────────
+let stagePopupTimer = null;
+
+function showStagePopup(oldStage, newStage){
+  if(newStage <= oldStage) return; // only show on upgrade
+  const stageName = SRS_STAGES[newStage];
+  const color = STAGE_COLORS[stageName] || "#888";
+
+  // remove old popup if any
+  document.getElementById("stage-popup")?.remove();
+  clearTimeout(stagePopupTimer);
+
+  const el = document.createElement("div");
+  el.id = "stage-popup";
+  el.className = "stage-popup";
+
+  // Special messages per stage group
+  const messages = {
+    "Apprentice 1": ["Apprentice I","Just getting started!"],
+    "Apprentice 2": ["Apprentice II","Building memory..."],
+    "Apprentice 3": ["Apprentice III","Getting there!"],
+    "Apprentice 4": ["Apprentice IV","Almost Guru!"],
+    "Guru 1":       ["Guru I 🎉","Guru reached!"],
+    "Guru 2":       ["Guru II 🎉","Locking it in!"],
+    "Master":       ["Master ⭐","You know this word!"],
+    "Enlightened":  ["Enlightened ✨","Nearly burned!"],
+    "Burned":       ["Burned 🔥","You'll never forget this!"],
+  };
+
+  const [label, sub] = messages[stageName] || [stageName, "Level up!"];
+
+  el.innerHTML = `
+    <div class="stage-popup-badge" style="background:${color};color:#fff">${label}</div>
+    <div class="stage-popup-label">${sub}</div>
+  `;
+
+  document.body.appendChild(el);
+
+  // Animate in
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>el.classList.add("show"));
+  });
+
+  // Animate out after 1.8s
+  stagePopupTimer = setTimeout(()=>{
+    el.classList.remove("show");
+    el.classList.add("hide");
+    setTimeout(()=>el.remove(), 350);
+  }, 1800);
+}
+
 // ── CROSS-WORD MEANING CHECK ───────────────────────────────────────────────
 function findMatchingWord(answer, excludeId){
   // Check if the answer matches the meaning of any OTHER word in vocab
@@ -564,6 +636,7 @@ function startLessons(){
 }
 function startReviews(){
   const due=dueReviews(); if(!due.length) return;
+  window._stageShown=new Set();
   reviewQueue=[];
   due.forEach(w=>{reviewQueue.push({word:w,type:"meaning"});reviewQueue.push({word:w,type:"dutch"});});
   for(let i=reviewQueue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[reviewQueue[i],reviewQueue[j]]=[reviewQueue[j],reviewQueue[i]];}
@@ -626,10 +699,22 @@ function submitReview(){
   const expected=type==="meaning"?word.english:word.dutch;
   const cur=progress[word.id];
   const correct=type==="meaning"?similarWithSynonyms(input,expected,word.id):similar(input,expected);
+  const oldStage=cur.stage;
   const newStage=correct?Math.min(cur.stage+1,SRS_STAGES.length-1):Math.max(cur.stage-1,0);
   progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
   recordAccuracy(word.id,correct);
   save();
+  // show stage-up popup only when both meaning AND dutch answered (i.e. on the second card of the pair)
+  if(correct && newStage>oldStage){
+    // Check if the other direction for this word was also just answered correctly
+    // We show popup after a full word pair is done — track via a temp set
+    if(!window._stageShown) window._stageShown=new Set();
+    const key=word.id+"-"+newStage;
+    if(!window._stageShown.has(key)){
+      window._stageShown.add(key);
+      setTimeout(()=>showStagePopup(oldStage,newStage),400);
+    }
+  }
   checkAnswer(expected, word.id, type);
 }
 
