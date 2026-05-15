@@ -431,8 +431,10 @@ function dueReviews(){
 }
 function normalize(s){ return s.trim().toLowerCase().replace(/[^a-z ]/g,""); }
 function getAcceptedAnswers(english){
-  // Split on "/" and also on "b)" "2)" style separators, strip parenthetical junk
-  let raw = english.replace(/[a-z0-9]\)\s*/gi," / ").replace(/\s+/g," ");
+  // Strip parenthetical hints like "(infinitive marker)", "(formal plural)" etc
+  let raw = english.replace(/\([^)]*\)/g," ");
+  // Split on "/" and also on "b)" "2)" style separators
+  raw = raw.replace(/[a-z0-9]\)\s*/gi," / ").replace(/\s+/g," ");
   return raw.split("/").map(x=>normalize(x)).filter(x=>x.length>0);
 }
 function similar(a,b){
