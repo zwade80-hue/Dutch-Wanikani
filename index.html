@@ -177,6 +177,22 @@
     .picker-word.selected:hover{background:#7c3aed44}
     /* MODAL */
     .modal-bg{position:fixed;inset:0;background:#00000090;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;animation:fadein .14s}
+
+    @keyframes shake{
+      0%,100%{transform:translateX(0)}
+      15%{transform:translateX(-6px)}
+      30%{transform:translateX(6px)}
+      45%{transform:translateX(-5px)}
+      60%{transform:translateX(5px)}
+      75%{transform:translateX(-3px)}
+      90%{transform:translateX(3px)}
+    }
+    .shake{animation:shake .4s ease}
+    .near-miss-hint{
+      margin:.5rem 0;padding:9px 14px;border-radius:8px;
+      background:#78350f22;color:#fbbf24;border:1px solid #78350f44;
+      font-size:13px;font-weight:500;text-align:center;
+    }
     @keyframes fadein{from{opacity:0}to{opacity:1}}
     .modal{background:#111130;border-radius:20px;padding:1.75rem;max-width:390px;width:100%;border:1px solid var(--border2);box-shadow:0 32px 80px #00000099;animation:slideup .16s cubic-bezier(.4,0,.2,1)}
     @keyframes slideup{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -490,6 +506,48 @@ function speakBtn(text, lang="nl-NL", size="15px"){
     title="Play audio">🔊</button>`;
 }
 
+
+
+// ── TYPO / NEAR MISS DETECTION ─────────────────────────────────────────────
+function editDistance(a, b){
+  const m=a.length, n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function isNearMiss(input, expected){
+  // Only applies to meaning (English) answers
+  const a = normalize(input);
+  const accepted = getAcceptedAnswers(expected);
+  // Already correct
+  if(accepted.some(x=>x===a)) return false;
+  // Check if within 2 edits of any accepted answer
+  return accepted.some(x=>{
+    const dist = editDistance(a, x);
+    // Allow 1 typo for short words, 2 for longer ones
+    const threshold = x.length <= 5 ? 1 : 2;
+    return dist <= threshold;
+  });
+}
+
+let nearMissActive = false; // track if we're in a near-miss state
+
+// ── CROSS-WORD MEANING CHECK ───────────────────────────────────────────────
+function findMatchingWord(answer, excludeId){
+  // Check if the answer matches the meaning of any OTHER word in vocab
+  const an = normalize(answer);
+  for(const w of VOCAB){
+    if(w.id === excludeId) continue;
+    const accepted = getAcceptedAnswers(w.english);
+    if(accepted.some(a => a === an || (a.length > 2 && an.length > 2 && (a.includes(an) || an.includes(a))))){
+      return w;
+    }
+  }
+  return null;
+}
+
 function stageColor(w){ const p=progress[w.id]; if(!p?.lessonDone) return "#333"; return STAGE_COLORS[SRS_STAGES[p.stage]]||"#888"; }
 function stageCounts(){ const c={}; SRS_STAGES.forEach(s=>c[s]=0); VOCAB.forEach(w=>{if(progress[w.id]?.lessonDone)c[SRS_STAGES[progress[w.id].stage]]++;}); return c; }
 
@@ -515,16 +573,50 @@ function startReviews(){
   screen="review"; render();
 }
 
-function checkAnswer(expected){
-  const correct=similar(input,expected);
-  feedback={correct,answer:expected};
+function checkAnswer(expected, wordId, type){
+  const correct=similar(input,expected)||similarWithSynonyms(input,expected,wordId);
+
+  // Near-miss detection: only for meaning (English) answers
+  if(!correct && type==="meaning" && input.trim().length>0 && isNearMiss(input,expected)){
+    nearMissActive=true;
+    // Shake the input and show hint — don't submit
+    const inp=document.getElementById("answer-input");
+    if(inp){
+      inp.classList.remove("shake");
+      void inp.offsetWidth; // force reflow to restart animation
+      inp.classList.add("shake","wrong");
+    }
+    // Show/update hint message
+    let hint=document.getElementById("near-miss-hint");
+    if(!hint){
+      hint=document.createElement("div");
+      hint.id="near-miss-hint";
+      hint.className="near-miss-hint";
+      inp?.parentNode?.insertBefore(hint,inp.nextSibling);
+    }
+    const accepted=getAcceptedAnswers(expected);
+    const closest=accepted.reduce((best,x)=>editDistance(normalize(input),x)<editDistance(normalize(input),best)?x:best,accepted[0]);
+    hint.textContent=`Almost! Check your spelling — did you mean "${closest}"?`;
+    return; // don't submit
+  }
+
+  nearMissActive=false;
+  // Remove hint if present
+  document.getElementById("near-miss-hint")?.remove();
+
+  if(!correct && type==="meaning" && input.trim().length>0){
+    const otherWord=findMatchingWord(input,wordId);
+    feedback={correct:false,answer:expected,crossMatch:otherWord||null};
+  } else {
+    feedback={correct,answer:expected};
+  }
   sessionTotal++; if(correct) sessionCorrect++;
   render();
   setTimeout(()=>document.getElementById("next-btn")?.focus(),50);
 }
 
 function advanceReview(){
-  feedback=null; input="";
+  feedback=null; input=""; nearMissActive=false;
   if(reviewIdx+1<reviewQueue.length){ reviewIdx++; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); }
   else{ finishSession(); const leveled=checkLevelUp(); save(); sessionDone=true; showLevelUp=leveled; render(); }
 }
@@ -538,11 +630,11 @@ function submitReview(){
   progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
   recordAccuracy(word.id,correct);
   save();
-  checkAnswer(expected);
+  checkAnswer(expected, word.id, type);
 }
 
 function advanceLesson(){
-  feedback=null; input="";
+  feedback=null; input=""; nearMissActive=false;
   if(lessonPhase==="learn"){ lessonPhase="quiz-meaning"; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); return; }
   if(lessonPhase==="quiz-meaning"){ lessonPhase="quiz-dutch"; render(); setTimeout(()=>document.getElementById("answer-input")?.focus(),50); return; }
   if(lessonIdx+1<lessonQueue.length){ lessonIdx++; lessonPhase="learn"; render(); }
@@ -560,7 +652,13 @@ function submitLesson(){
   const word=lessonQueue[lessonIdx];
   const expected=lessonPhase==="quiz-meaning"?word.english:word.dutch;
   if(lessonPhase==="quiz-meaning"){
-    feedback={correct:similarWithSynonyms(input,expected,word.id),answer:expected};
+    const correct=similarWithSynonyms(input,expected,word.id);
+    if(!correct && input.trim().length>0){
+      const otherWord=findMatchingWord(input,word.id);
+      feedback={correct:false,answer:expected,crossMatch:otherWord||null};
+    } else {
+      feedback={correct,answer:expected};
+    }
   } else {
     feedback={correct:similar(input,expected),answer:expected};
   }
@@ -947,7 +1045,13 @@ function renderLesson(app){
       <div class="big-word">${prompt}</div>
       <div class="prompt-label">${isMeaning?"What is the English meaning?":"How do you write this in Dutch?"}</div>
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${placeholder}" ${feedback?"disabled":""}/>
-      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}</div>${closeEnoughBtn(lessonPhase==="quiz-meaning"?"meaning":"dutch")}`:""}
+      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${
+        feedback.correct
+          ? (feedback.closeEnough?"~ Close enough!":"✓ Correct!")
+          : feedback.crossMatch
+            ? `✗ That's the meaning of <b>${feedback.crossMatch.dutch}</b> — correct answer: ${feedback.answer}`
+            : "✗ Wrong — correct answer: "+feedback.answer
+      }</div>${closeEnoughBtn(lessonPhase==="quiz-meaning"?"meaning":"dutch")}`:""}
       <button id="next-btn" class="check-btn" style="background:${btnColor}" onclick="submitLesson()">${feedback?nextLabel:"Check →"}</button>
       ${infoBtnHTML(word.id)}
     </div>
@@ -985,7 +1089,13 @@ function renderReview(app){
       </div>
       <div class="prompt-label">${label}</div>
       <input id="answer-input" type="text" class="${feedback?(feedback.correct?"correct":"wrong"):""}" value="${input.replace(/"/g,'&quot;')}" placeholder="${type==="meaning"?"Type English meaning…":"Type Dutch word…"}" ${feedback?"disabled":""}/>
-      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${feedback.correct?(feedback.closeEnough?"~ Close enough!":"✓ Correct!"):"✗ Wrong — correct answer: "+feedback.answer}${!feedback.correct&&type==="dutch"&&word.article?`<br><small>Article: ${word.article}</small>`:""}</div>${closeEnoughBtn(type)}`:""}
+      ${feedback?`<div class="feedback ${feedback.correct?"correct":"wrong"}">${
+        feedback.correct
+          ? (feedback.closeEnough?"~ Close enough!":"✓ Correct!")
+          : feedback.crossMatch
+            ? `✗ That's the meaning of <b>${feedback.crossMatch.dutch}</b> — correct answer: ${feedback.answer}`
+            : "✗ Wrong — correct answer: "+feedback.answer
+      }${!feedback.correct&&type==="dutch"&&word.article?`<br><small>Article: ${word.article}</small>`:""}</div>${closeEnoughBtn(type)}`:""}
       <button id="next-btn" class="check-btn" style="background:${btnColor}" onclick="submitReview()">${feedback?nextLabel:"Check →"}</button>
     </div>
     <div class="stats-bar">
