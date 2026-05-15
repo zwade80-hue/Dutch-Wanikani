@@ -637,6 +637,7 @@ function startLessons(){
 function startReviews(){
   const due=dueReviews(); if(!due.length) return;
   window._stageShown=new Set();
+  window._sessionCorrect={}; // wordId -> {meaning:bool, dutch:bool}
   reviewQueue=[];
   due.forEach(w=>{reviewQueue.push({word:w,type:"meaning"});reviewQueue.push({word:w,type:"dutch"});});
   for(let i=reviewQueue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[reviewQueue[i],reviewQueue[j]]=[reviewQueue[j],reviewQueue[i]];}
@@ -699,22 +700,43 @@ function submitReview(){
   const expected=type==="meaning"?word.english:word.dutch;
   const cur=progress[word.id];
   const correct=type==="meaning"?similarWithSynonyms(input,expected,word.id):similar(input,expected);
+
+  // Track per-word correctness this session
+  if(!window._sessionCorrect) window._sessionCorrect={};
+  if(!window._sessionCorrect[word.id]) window._sessionCorrect[word.id]={meaning:null,dutch:null};
+  // Only record a correct — a wrong stays wrong for this session
+  if(correct) window._sessionCorrect[word.id][type]=true;
+  else if(window._sessionCorrect[word.id][type]!==true) window._sessionCorrect[word.id][type]=false;
+
+  const pair=window._sessionCorrect[word.id];
+  const bothAnswered=pair.meaning!==null && pair.dutch!==null;
+  const bothCorrect=pair.meaning===true && pair.dutch===true;
+  const eitherWrong=pair.meaning===false || pair.dutch===false;
+
   const oldStage=cur.stage;
-  const newStage=correct?Math.min(cur.stage+1,SRS_STAGES.length-1):Math.max(cur.stage-1,0);
-  progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
-  recordAccuracy(word.id,correct);
-  save();
-  // show stage-up popup only when both meaning AND dutch answered (i.e. on the second card of the pair)
-  if(correct && newStage>oldStage){
-    // Check if the other direction for this word was also just answered correctly
-    // We show popup after a full word pair is done — track via a temp set
-    if(!window._stageShown) window._stageShown=new Set();
-    const key=word.id+"-"+newStage;
-    if(!window._stageShown.has(key)){
-      window._stageShown.add(key);
-      setTimeout(()=>showStagePopup(oldStage,newStage),400);
+  let newStage=cur.stage;
+
+  if(bothAnswered){
+    if(bothCorrect){
+      newStage=Math.min(cur.stage+1, SRS_STAGES.length-1);
+    } else if(eitherWrong){
+      newStage=Math.max(cur.stage-1, 0);
+    }
+    progress[word.id]={...cur,stage:newStage,nextReview:Date.now()+SRS_INTERVALS[newStage]*3600000};
+    save();
+    // Show stage-up popup if stage advanced
+    if(newStage>oldStage){
+      if(!window._stageShown) window._stageShown=new Set();
+      const key=word.id+"-"+newStage;
+      if(!window._stageShown.has(key)){
+        window._stageShown.add(key);
+        setTimeout(()=>showStagePopup(oldStage,newStage),400);
+      }
     }
   }
+  // If only one side answered so far, don't touch the SRS stage yet
+
+  recordAccuracy(word.id,correct);
   checkAnswer(expected, word.id, type);
 }
 
