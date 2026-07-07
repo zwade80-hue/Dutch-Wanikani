@@ -2682,7 +2682,7 @@
   {
     "id": 269,
     "dutch": "pas",
-    "english": "only",
+    "english": "only/just/not until",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch word meaning <b>only</b>. Frequently used in both spoken and written Dutch.",
@@ -3042,7 +3042,7 @@
   {
     "id": 305,
     "dutch": "enig",
-    "english": "only",
+    "english": "only (unique/sole)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch word meaning <b>only</b>. Frequently used in both spoken and written Dutch.",
