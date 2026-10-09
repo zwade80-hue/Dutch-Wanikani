@@ -297,6 +297,42 @@ function load(){
   currentLevel=parseInt(localStorage.getItem("dutch-level")||"1");
 }
 
+// ── BACKUP / RESTORE ─────────────────────────────────────────────────────────
+function exportProgress(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith("dutch")) data[k]=localStorage.getItem(k);
+  }
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`dutch-vocab-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function importProgress(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(typeof data!=="object"||!data||Array.isArray(data)) throw new Error("bad");
+      const keys=Object.keys(data);
+      if(!keys.some(k=>k.startsWith("dutch"))) throw new Error("no dutch keys");
+      keys.forEach(k=>{ if(k.startsWith("dutch")) localStorage.setItem(k,String(data[k])); });
+      load(); initProgress();
+      screen="dashboard"; render();
+      alert("Backup restored! \u2713");
+    }catch(err){
+      alert("Import failed \u2014 that doesn't look like a valid backup file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 // ── WORD TYPE DETECTION ────────────────────────────────────────────────────
 const KNOWN_ADJECTIVES = new Set([
   "good","bad","big","small","red","blue","new","old","hot","cold","fast","slow",
@@ -1281,6 +1317,16 @@ function renderSettings(app){
     </div>
 
     <div class="card">
+      <div class="card-label">Backup &amp; restore</div>
+      <button class="btn-secondary" style="margin-top:0" onclick="exportProgress()">⬇ Download backup</button>
+      <label style="display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface2);color:var(--text);width:100%;margin-top:10px;border:1px solid var(--border2);padding:11px;border-radius:10px;font-size:14px;font-weight:500">
+        ⬆ Restore from backup
+        <input type="file" accept="application/json,.json" style="display:none" onchange="if(this.files[0])importProgress(this.files[0])"/>
+      </label>
+      <p style="font-size:12px;color:#555;margin-top:8px">Download saves everything — progress, SRS stages, streak, stats, synonyms, settings — to a file. It's the only way back if your browser data clears, so keep it somewhere safe and re-download now and then.</p>
+    </div>
+
+    <div class="card">
       <div class="card-label">Progress</div>
       <button class="btn-secondary" style="background:#1a1a2e;color:#f87171;border-color:#7f1d1d;margin-top:0"
         onclick="if(confirm('Reset ALL progress? This cannot be undone.')){localStorage.clear();progress={};currentLevel=1;initProgress();screen='dashboard';render()}">
@@ -1602,7 +1648,7 @@ function renderSRS(app){
         ${[
           ["🎯","Answer both directions","Each word has two review cards — Dutch→English and English→Dutch. You need both right to advance."],
           ["⏰","Do reviews on time","The SRS only works if you review when items are due. Missing reviews pushes everything back."],
-          ["📈","Guru unlocks levels","90% of a level's words must reach Guru before the next level unlocks."],
+          ["📈","Guru unlocks levels","75% of a level's words must reach Guru before the next level unlocks."],
           ["🔥","Burned = long-term memory","Burned words took ~6 months of successful reviews. You've truly learned them."],
           ["💡","Use the info panel","When you get something wrong, tap 👁 View word info to read the meaning and examples."],
         ].map(([icon,title,desc])=>`
