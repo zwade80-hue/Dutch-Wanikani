@@ -471,7 +471,7 @@ function getAcceptedAnswers(english){
   let raw = english.replace(/\([^)]*\)/g," ");
   // Split on "/" and also on "b)" "2)" style separators
   raw = raw.replace(/[a-z0-9]\)\s*/gi," / ").replace(/\s+/g," ");
-  return raw.split("/").map(x=>normalize(x)).filter(x=>x.length>0);
+  return raw.split(/[\/,]/).map(x=>normalize(x)).filter(x=>x.length>0);
 }
 function similar(a,b){
   a=normalize(a);
