@@ -272,7 +272,7 @@
   {
     "id": 28,
     "dutch": "weten",
-    "english": "to know",
+    "english": "to know (a fact)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Knowing facts or information. Distinct from <b>kennen</b> which means knowing people or places.",
@@ -2712,7 +2712,7 @@
   {
     "id": 272,
     "dutch": "kennen",
-    "english": "to know",
+    "english": "to know (a person, thing)",
     "article": null,
     "etymology": "Germanic",
     "meaning": "Dutch verb meaning to know. Used in everyday speech.",
