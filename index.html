@@ -1664,6 +1664,10 @@ function renderSRS(app){
 }
 
 async function init(){
+  // Ask the browser not to evict our data under storage pressure.
+  if(navigator.storage&&navigator.storage.persist){
+    try{ await navigator.storage.persist(); }catch(e){}
+  }
   try{ const r=await fetch("words.json"); VOCAB=await r.json(); }catch(e){ VOCAB=[]; }
   load(); initProgress(); render();
 }
